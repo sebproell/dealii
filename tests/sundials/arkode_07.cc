@@ -16,6 +16,9 @@
 #include <deal.II/base/parameter_handler.h>
 
 #include <deal.II/lac/full_matrix.h>
+#include <deal.II/lac/precondition.h>
+#include <deal.II/lac/solver_cg.h>
+#include <deal.II/lac/solver_control.h>
 #include <deal.II/lac/vector.h>
 
 #include <deal.II/sundials/arkode.h>
@@ -23,8 +26,8 @@
 #include "../tests.h"
 
 
-// Test implicit-explicit time stepper. Only solve_jacobian_system.
-// Brusselator benchmark
+// Test implicit-explicit time stepper. Both setup and solve_jacobian_system +
+// custom linear solver + custom preconditioner supplied through SUNDIALS
 
 /**
  * This test problem is called "brusselator", and is a typical benchmark for
@@ -62,12 +65,12 @@ main(int argc, char **argv)
 
   if (false)
     {
-      std::ofstream ofile(SOURCE_DIR "/harmonic_oscillator_05.prm");
+      std::ofstream ofile(SOURCE_DIR "/arkode_07.prm");
       prm.print_parameters(ofile, ParameterHandler::ShortText);
       ofile.close();
     }
 
-  std::ifstream ifile(SOURCE_DIR "/harmonic_oscillator_05.prm");
+  std::ifstream ifile(SOURCE_DIR "/arkode_07.prm");
   prm.parse_input(ifile);
 
   SUNDIALS::ARKode<VectorType> ode(data);
@@ -99,20 +102,58 @@ main(int argc, char **argv)
     return 0;
   };
 
-  ode.solve_jacobian_system = [&](const double t,
-                                  const double gamma,
-                                  const VectorType &,
-                                  const VectorType &,
-                                  const VectorType &src,
-                                  VectorType &      dst) -> int {
+
+  ode.jacobian_times_setup =
+    [&](realtype t, const VectorType &y, const VectorType &fy) -> int {
     J       = 0;
-    J(0, 0) = 1;
-    J(1, 1) = 1;
-    J(2, 2) = 1 + gamma / eps;
-    J.gauss_jordan();
-    J.vmult(dst, src);
+    J(2, 2) = -1.0 / eps;
     return 0;
   };
+
+  ode.jacobian_times_vector = [&](const VectorType &v,
+                                  VectorType &      Jv,
+                                  double            t,
+                                  const VectorType &y,
+                                  const VectorType &fy) -> int {
+    J.vmult(Jv, v);
+    return 0;
+  };
+
+  ode.solve_linearized_system =
+    [&](SUNDIALS::SundialsOperator<VectorType> &      op,
+        SUNDIALS::SundialsPreconditioner<VectorType> &prec,
+        VectorType &                                  x,
+        const VectorType &                            b,
+        double                                        tol) -> int {
+    ReductionControl     control;
+    SolverCG<VectorType> solver_cg(control);
+    solver_cg.solve(op, x, b, prec);
+    return 0;
+  };
+
+  ode.jacobian_preconditioner_setup = [&](double            t,
+                                          const VectorType &y,
+                                          const VectorType &fy,
+                                          int               jok,
+                                          int &             jcur,
+                                          double            gamma) -> int {
+    std::cout << "jacobian_preconditioner_setup called\n";
+    return 0;
+  };
+
+  ode.jacobian_preconditioner_solve = [&](double            t,
+                                          const VectorType &y,
+                                          const VectorType &fy,
+                                          const VectorType &r,
+                                          VectorType &      z,
+                                          double            gamma,
+                                          double            delta,
+                                          int               lr) -> int {
+    std::cout << "jacobian_preconditioner_solve called\n";
+    z = r;
+    return 0;
+  };
+
 
   ode.output_step = [&](const double       t,
                         const VectorType & sol,

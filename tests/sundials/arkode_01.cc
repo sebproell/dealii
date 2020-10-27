@@ -22,7 +22,7 @@
 
 #include "../tests.h"
 
-// Test implicit time stepper, no jacobian. Only implements implicit_function.
+// Test explicit time stepper. Only implements explicit_function.
 
 /**
  * Solve the Harmonic oscillator problem.
@@ -63,8 +63,15 @@ main(int argc, char **argv)
   SUNDIALS::ARKode<VectorType>::AdditionalData data;
   data.add_parameters(prm);
 
-  // Use the same parameters of test 2.
-  std::ifstream ifile(SOURCE_DIR "/harmonic_oscillator_02.prm");
+  // Set to true to reset input file.
+  if (false)
+    {
+      std::ofstream ofile(SOURCE_DIR "/arkode_01.prm");
+      prm.print_parameters(ofile, ParameterHandler::ShortText);
+      ofile.close();
+    }
+
+  std::ifstream ifile(SOURCE_DIR "/arkode_01.prm");
   prm.parse_input(ifile);
 
   SUNDIALS::ARKode<VectorType> ode(data);
@@ -73,7 +80,7 @@ main(int argc, char **argv)
 
   double kappa = 1.0;
 
-  ode.implicit_function =
+  ode.explicit_function =
     [&](double, const VectorType &y, VectorType &ydot) -> int {
     ydot[0] = y[1];
     ydot[1] = -kappa * kappa * y[0];
@@ -83,11 +90,7 @@ main(int argc, char **argv)
   ode.output_step = [&](const double       t,
                         const VectorType & sol,
                         const unsigned int step_number) -> int {
-    // limit the output to every 10th step and increase the precision to make
-    // the test more robust
-    if (step_number % 10 == 0)
-      out << t << " " << std::setprecision(7) << sol[0] << " " << sol[1]
-          << std::endl;
+    out << t << " " << sol[0] << " " << sol[1] << std::endl;
     return 0;
   };
 

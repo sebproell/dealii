@@ -62,12 +62,12 @@ main(int argc, char **argv)
 
   if (false)
     {
-      std::ofstream ofile(SOURCE_DIR "/harmonic_oscillator_06.prm");
+      std::ofstream ofile(SOURCE_DIR "/arkode_05.prm");
       prm.print_parameters(ofile, ParameterHandler::ShortText);
       ofile.close();
     }
 
-  std::ifstream ifile(SOURCE_DIR "/harmonic_oscillator_06.prm");
+  std::ifstream ifile(SOURCE_DIR "/arkode_05.prm");
   prm.parse_input(ifile);
 
   SUNDIALS::ARKode<VectorType> ode(data);

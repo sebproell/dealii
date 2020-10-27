@@ -22,32 +22,29 @@
 
 #include "../tests.h"
 
-// Test explicit time stepper. Only implements explicit_function.
+
+// Test implicit-explicit time stepper, no jacobian.
+// Brusselator benchmark
 
 /**
- * Solve the Harmonic oscillator problem.
+ * This test problem is called "brusselator", and is a typical benchmark for
+ * ODE solvers. This problem has 3 dependent variables u, v and w, that depend
+ * on the independent variable t via the IVP system
  *
- * u'' = -k^2 u
- * u (0) = 0
- * u'(0) = k
+ * du/dt = a − (w + 1)u + v u^2
+ * dv/dt = w u − v u^2
+ * dw/dt = (b − w)/eps -w u
  *
- * write in terms of a first order ode:
+ * We integrate over the interval 0 ≤ t ≤ 10, with the initial conditions
  *
- * y[0]' =       y[1]
- * y[1]' = - k^2 y[0]
+ * u(0) = 3.9, v(0) = 1.1, w(0) = 2.8,
  *
- * That is
+ * and parameters
  *
- * y' = A y
+ * a = 1.2, b = 2.5, and eps = 10−5
  *
- * A = [ 0 , 1; -k^2, 0 ]
- *
- * y_0  = 0, k
- *
- * The exact solution is
- *
- * y[0](t) = sin(k t)
- * y[1](t) = k cos(k t)
+ * The implicit part only contains the stiff part of the problem (the part with
+ * eps in right hand side of the third equation).
  */
 int
 main(int argc, char **argv)
@@ -63,40 +60,58 @@ main(int argc, char **argv)
   SUNDIALS::ARKode<VectorType>::AdditionalData data;
   data.add_parameters(prm);
 
-  // Set to true to reset input file.
   if (false)
     {
-      std::ofstream ofile(SOURCE_DIR "/harmonic_oscillator_02.prm");
+      std::ofstream ofile(SOURCE_DIR "/arkode_03.prm");
       prm.print_parameters(ofile, ParameterHandler::ShortText);
       ofile.close();
     }
 
-  std::ifstream ifile(SOURCE_DIR "/harmonic_oscillator_02.prm");
+  std::ifstream ifile(SOURCE_DIR "/arkode_03.prm");
   prm.parse_input(ifile);
 
   SUNDIALS::ARKode<VectorType> ode(data);
 
-  ode.reinit_vector = [&](VectorType &v) { v.reinit(2); };
+  ode.reinit_vector = [&](VectorType &v) {
+    // Three independent variables
+    v.reinit(3);
+  };
 
-  double kappa = 1.0;
+  // Parameters
+  double u0 = 3.9, v0 = 1.1, w0 = 2.8, a = 1.2, b = 2.5, eps = 1e-5;
+
+  ode.implicit_function =
+    [&](double, const VectorType &y, VectorType &ydot) -> int {
+    ydot[0] = 0;
+    ydot[1] = 0;
+    ydot[2] = (b - y[2]) / eps;
+    return 0;
+  };
+
 
   ode.explicit_function =
     [&](double, const VectorType &y, VectorType &ydot) -> int {
-    ydot[0] = y[1];
-    ydot[1] = -kappa * kappa * y[0];
+    ydot[0] = a - (y[2] + 1) * y[0] + y[1] * y[0] * y[0];
+    ydot[1] = y[2] * y[0] - y[1] * y[0] * y[0];
+    ydot[2] = -y[2] * y[0];
     return 0;
   };
 
   ode.output_step = [&](const double       t,
                         const VectorType & sol,
                         const unsigned int step_number) -> int {
-    out << t << " " << sol[0] << " " << sol[1] << std::endl;
+    // limit the output to every 10th step and increase the precision to make
+    // the test more robust
+    if (step_number % 10 == 0)
+      out << t << " " << std::setprecision(10) << sol[0] << " " << sol[1] << " "
+          << sol[2] << std::endl;
     return 0;
   };
 
-  Vector<double> y(2);
-  y[0] = 0;
-  y[1] = kappa;
+  Vector<double> y(3);
+  y[0] = u0;
+  y[1] = v0;
+  y[2] = w0;
   ode.solve_ode(y);
   return 0;
 }

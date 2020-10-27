@@ -26,7 +26,7 @@ MACRO(FEATURE_SUNDIALS_FIND_EXTERNAL var)
     #
     # We don't support version 4.0.0 or later yet.
     #
-    SET(_first_unsupported_sundials_version 4.0.0)
+    SET(_first_unsupported_sundials_version 5.4.1)
     IF(NOT SUNDIALS_VERSION VERSION_LESS ${_first_unsupported_sundials_version})
       MESSAGE(STATUS
               "Insufficient SUNDIALS installation found: "
