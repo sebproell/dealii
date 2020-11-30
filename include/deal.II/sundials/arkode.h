@@ -89,8 +89,8 @@ namespace SUNDIALS
    *
    * @param[in] op a LinearOperator that applies the matrix vector product
    * @param[in] prec a LinearOperator that applies the preconditioner
-   * @params[out] x the output solution vector
-   * @params[in] b the right-hand side
+   * @param[out] x the output solution vector
+   * @param[in] b the right-hand side
    * @param[in] tol a tolerance for the iterative solver
    *
    * This function should return:
