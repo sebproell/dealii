@@ -20,6 +20,7 @@ SET(_src
   ida.cc
   copy.cc
   kinsol.cc
+  n_vector.cc
   )
 
 SET(_inst

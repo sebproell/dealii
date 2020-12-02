@@ -1,0 +1,6 @@
+
+DEAL::test_nvector_view OK
+DEAL::test_unwrap_vector OK
+DEAL::test_get_vector_id OK
+DEAL::test_clone OK
+DEAL::test_destroy OK
