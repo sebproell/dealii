@@ -1,6 +1,6 @@
 //-----------------------------------------------------------
 //
-//    Copyright (C) 2017 - 2018 by the deal.II authors
+//    Copyright (C) 2020 by the deal.II authors
 //
 //    This file is part of the deal.II library.
 //
@@ -52,7 +52,9 @@
 int
 main(int argc, char **argv)
 {
-  std::ofstream out("output");
+  initlog();
+  // restrict output to highest level
+  deallog.depth_file(1);
 
   Utilities::MPI::MPI_InitFinalize mpi_initialization(
     argc, argv, numbers::invalid_unsigned_int);
@@ -134,7 +136,8 @@ main(int argc, char **argv)
   ode.output_step = [&](const double       t,
                         const VectorType & sol,
                         const unsigned int step_number) -> int {
-    out << t << " " << sol[0] << " " << sol[1] << " " << sol[2] << std::endl;
+    deallog << t << " " << sol[0] << " " << sol[1] << " " << sol[2]
+            << std::endl;
     return 0;
   };
 

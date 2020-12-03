@@ -49,7 +49,7 @@
 int
 main(int argc, char **argv)
 {
-  std::ofstream out("output");
+  initlog();
 
   Utilities::MPI::MPI_InitFinalize mpi_initialization(
     argc, argv, numbers::invalid_unsigned_int);
@@ -128,7 +128,8 @@ main(int argc, char **argv)
   ode.output_step = [&](const double       t,
                         const VectorType & sol,
                         const unsigned int step_number) -> int {
-    out << t << " " << sol[0] << " " << sol[1] << " " << sol[2] << std::endl;
+    deallog << t << " " << sol[0] << " " << sol[1] << " " << sol[2]
+            << std::endl;
     return 0;
   };
 

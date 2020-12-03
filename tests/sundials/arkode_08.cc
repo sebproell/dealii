@@ -1,6 +1,6 @@
 //-----------------------------------------------------------
 //
-//    Copyright (C) 2017 - 2018 by the deal.II authors
+//    Copyright (C) 2020 by the deal.II authors
 //
 //    This file is part of the deal.II library.
 //
@@ -13,6 +13,7 @@
 //
 //-----------------------------------------------------------
 
+#include <deal.II/base/logstream.h>
 #include <deal.II/base/parameter_handler.h>
 
 #include <deal.II/lac/full_matrix.h>
@@ -26,8 +27,8 @@
 #include "../tests.h"
 
 
-// Test implicit-explicit time stepper. Both solve_jacobian + custom linear
-// solver + custom mass solver
+// Test implicit-explicit time stepper. solve_jacobian + custom linear solver +
+// custom mass solver
 
 /**
  * Test problem inspired by linear 1D FE problem with two unknowns u = [u1 u2]:
@@ -48,10 +49,7 @@
 int
 main(int argc, char **argv)
 {
-  std::ofstream out("output");
-
-  Utilities::MPI::MPI_InitFinalize mpi_initialization(
-    argc, argv, numbers::invalid_unsigned_int);
+  initlog();
 
   typedef Vector<double> VectorType;
 
@@ -106,11 +104,12 @@ main(int argc, char **argv)
     return 0;
   };
 
-  auto solve_function = [&](SUNDIALS::SundialsOperator<VectorType> &      op,
-                            SUNDIALS::SundialsPreconditioner<VectorType> &prec,
-                            VectorType &                                  x,
-                            const VectorType &                            b,
-                            double tol) -> int {
+  const auto solve_function =
+    [&](SUNDIALS::SundialsOperator<VectorType> &      op,
+        SUNDIALS::SundialsPreconditioner<VectorType> &prec,
+        VectorType &                                  x,
+        const VectorType &                            b,
+        double                                        tol) -> int {
     ReductionControl     control;
     SolverCG<VectorType> solver_cg(control);
     solver_cg.solve(op, x, b, prec);
@@ -128,13 +127,15 @@ main(int argc, char **argv)
                                       VectorType &      z,
                                       double            gamma,
                                       int               lr) -> int {
-    out << "mass_preconditioner_solve\n";
+    LogStream::Prefix prefix("mass_preconditioner_solve");
+    deallog << "applied" << std::endl;
     M_inv.vmult(z, r);
     return 0;
   };
 
   ode.mass_preconditioner_setup = [&](double t) -> int {
-    out << "mass_preconditioner_setup\n";
+    LogStream::Prefix prefix("mass_preconditioner_setup");
+    deallog << "applied" << std::endl;
     M_inv.invert(M);
     return 0;
   };
@@ -149,7 +150,7 @@ main(int argc, char **argv)
   ode.output_step = [&](const double       t,
                         const VectorType & sol,
                         const unsigned int step_number) -> int {
-    out << t << " " << sol[0] << " " << sol[1] << std::endl;
+    deallog << t << " " << sol[0] << " " << sol[1] << std::endl;
     return 0;
   };
 
