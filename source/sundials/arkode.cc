@@ -113,6 +113,8 @@ namespace SUNDIALS
       return err;
     }
 
+
+
 #  if DEAL_II_SUNDIALS_VERSION_LT(4, 0, 0)
     template <typename VectorType>
     int
@@ -274,6 +276,8 @@ namespace SUNDIALS
       return err;
     }
 
+
+
     template <typename VectorType>
     int
     t_arkode_jac_times_setup_function(realtype t,
@@ -293,6 +297,8 @@ namespace SUNDIALS
       int err = solver.jacobian_times_setup(t, *src_y, *src_fy);
       return err;
     }
+
+
 
     template <typename VectorType>
     int
@@ -328,6 +334,8 @@ namespace SUNDIALS
       return status;
     }
 
+
+
     template <typename VectorType>
     int
     t_arkode_prec_setup_function(realtype     t,
@@ -351,6 +359,8 @@ namespace SUNDIALS
         t, *src_y, *src_fy, jok, *jcurPtr, gamma);
     }
 
+
+
     template <typename VectorType>
     int
     t_arkode_mass_times_vec_function(N_Vector v,
@@ -373,6 +383,8 @@ namespace SUNDIALS
       return err;
     }
 
+
+
     template <typename VectorType>
     int
     t_arkode_mass_times_setup_function(realtype t, void *mtimes_data)
@@ -382,6 +394,8 @@ namespace SUNDIALS
 
       return solver.mass_times_setup(t);
     }
+
+
 
     template <typename VectorType>
     int
@@ -408,6 +422,8 @@ namespace SUNDIALS
       return status;
     }
 
+
+
     template <typename VectorType>
     int
     t_arkode_mass_prec_setup_function(realtype t, void *user_data)
@@ -418,7 +434,9 @@ namespace SUNDIALS
       return solver.mass_preconditioner_setup(t);
     }
 
-    //! storage for internal content of the linear solver wrapper
+    /**
+     * storage for internal content of the linear solver wrapper
+     */
     template <typename VectorType>
     struct LinearSolverContent
     {
@@ -435,6 +453,8 @@ namespace SUNDIALS
       void *              A_data;
     };
 
+
+
     template <typename VectorType>
     LinearSolverContent<VectorType> *
     access_content(SUNLinearSolver ls)
@@ -442,10 +462,14 @@ namespace SUNDIALS
       return static_cast<LinearSolverContent<VectorType> *>(ls->content);
     }
 
+
+
     SUNLinearSolver_Type arkode_linsol_get_type(SUNLinearSolver)
     {
       return SUNLINEARSOLVER_ITERATIVE;
     }
+
+
 
     template <typename VectorType>
     int
@@ -477,6 +501,8 @@ namespace SUNDIALS
       return err;
     }
 
+
+
     template <typename VectorType>
     int
     arkode_linsol_setup(SUNLinearSolver LS, SUNMatrix)
@@ -489,6 +515,7 @@ namespace SUNDIALS
     }
 
 
+
     template <typename VectorType>
     int
     arkode_linsol_set_a_times(SUNLinearSolver LS, void *A_data, ATimesFn ATimes)
@@ -498,6 +525,8 @@ namespace SUNDIALS
       content->a_times_fn = ATimes;
       return 0;
     }
+
+
 
     template <typename VectorType>
     int
@@ -517,6 +546,7 @@ namespace SUNDIALS
   } // namespace
 
 #  if DEAL_II_SUNDIALS_VERSION_GTE(5, 4, 0)
+
   /*!
    * Attach wrapper functions to SUNDIALS' linear solver interface. We pretend
    * that the user-supplied linear solver is matrix-free, even though it can
@@ -558,6 +588,72 @@ namespace SUNDIALS
     SUNLinearSolver                 sun_linear_solver;
     LinearSolverContent<VectorType> content;
   };
+
+
+
+  /**
+   * A linear operator that wraps SUNDIALS functionality.
+   */
+  template <typename VectorType>
+  struct SundialsOperator
+  {
+    /**
+     * Apply this LinearOperator to @p src and store the result in @dst.
+     */
+    void
+    vmult(VectorType &dst, const VectorType &src) const;
+
+    /**
+     * Constructor.
+     *
+     * @param solver the ARKode solver that uses this operator
+     * @param A_data data required by @p a_times_fn
+     * @param a_times_fn a function pointer to the function that computes A*v
+     */
+    SundialsOperator(ARKode<VectorType> &solver,
+                     void *              A_data,
+                     ATimesFn            a_times_fn);
+
+  private:
+    // Todo the solver reference can probably removed once vectors are no longer
+    // copied
+    ARKode<VectorType> &solver;
+    /**
+     * Data necessary to evaluate a_times_fn.
+     */
+    void *A_data;
+
+    /**
+     * Function pointer declared by SUNDIALS to evaluate the matrix vector
+     * product.
+     */
+    ATimesFn a_times_fn;
+  };
+
+  /**
+   * A linear operator that wraps SUNDIALS preconditioner functionality.
+   */
+  template <typename VectorType>
+  struct SundialsPreconditioner
+  {
+    void
+    vmult(VectorType &dst, const VectorType &src) const;
+
+    SundialsPreconditioner(ARKode<VectorType> &solver,
+                           void *              P_data,
+                           PSolveFn            p_solve_fn,
+                           double              tol);
+
+  private:
+    // Todo the solver reference can probably removed once vectors are no longer
+    // copied
+    ARKode<VectorType> &solver;
+    void *              P_data;
+    PSolveFn            p_solve_fn;
+    double              tol;
+  };
+
+
 #  endif
 
   template <typename VectorType>
@@ -820,7 +916,9 @@ namespace SUNDIALS
     status = ARKodeSetOrder(arkode_mem, data.maximum_order);
     AssertARKode(status);
   }
+
 #  else
+
   template <typename VectorType>
   void
   ARKode<VectorType>::reset(const double current_time,
@@ -998,6 +1096,8 @@ namespace SUNDIALS
   }
 #  endif
 
+
+
   template <typename VectorType>
   void
   ARKode<VectorType>::set_functions_to_trigger_an_assert()
@@ -1011,6 +1111,8 @@ namespace SUNDIALS
     };
   }
 
+
+
   template <typename VectorType>
   N_Vector
   ARKode<VectorType>::create_vector(const VectorType &template_vector) const
@@ -1021,11 +1123,10 @@ namespace SUNDIALS
 #  ifdef DEAL_II_WITH_MPI
     if (is_serial_vector<VectorType>::value == false)
       {
-        const IndexSet    is = template_vector.locally_owned_elements();
-        const std::size_t local_system_size = is.n_elements();
-
         new_vector =
-          N_VNew_Parallel(communicator, local_system_size, system_size);
+          N_VNew_Parallel(communicator,
+                          template_vector.locally_owned_elements().n_elements(),
+                          system_size);
       }
     else
 #  endif
@@ -1034,6 +1135,8 @@ namespace SUNDIALS
       }
     return new_vector;
   }
+
+
 
   template <typename VectorType>
   void *
@@ -1055,6 +1158,8 @@ namespace SUNDIALS
     AssertThrow(a_times_fn != nullptr, ExcInternalError());
   }
 
+
+
   template <typename VectorType>
   void
   SundialsOperator<VectorType>::vmult(VectorType &      dst,
@@ -1070,6 +1175,8 @@ namespace SUNDIALS
     copy(dst, sun_dst);
   }
 
+
+
   template <typename VectorType>
   SundialsPreconditioner<VectorType>::SundialsPreconditioner(
     ARKode<VectorType> &solver,
@@ -1081,6 +1188,8 @@ namespace SUNDIALS
     , p_solve_fn(p_solve_fn)
     , tol(tol)
   {}
+
+
 
   template <typename VectorType>
   void

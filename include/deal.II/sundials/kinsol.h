@@ -17,34 +17,33 @@
 #define dealii_sundials_kinsol_h
 
 #include <deal.II/base/config.h>
-#ifdef DEAL_II_WITH_SUNDIALS
 
-#  if DEAL_II_SUNDIALS_VERSION_LT(4, 0, 0)
+#if defined(DEAL_II_WITH_SUNDIALS) && DEAL_II_SUNDIALS_VERSION_LT(4, 0, 0)
 
-#    include <deal.II/base/conditional_ostream.h>
-#    include <deal.II/base/exceptions.h>
-#    include <deal.II/base/logstream.h>
-#    include <deal.II/base/mpi.h>
-#    include <deal.II/base/parameter_handler.h>
+#  include <deal.II/base/conditional_ostream.h>
+#  include <deal.II/base/exceptions.h>
+#  include <deal.II/base/logstream.h>
+#  include <deal.II/base/mpi.h>
+#  include <deal.II/base/parameter_handler.h>
 
-#    include <deal.II/lac/vector.h>
-#    include <deal.II/lac/vector_memory.h>
+#  include <deal.II/lac/vector.h>
+#  include <deal.II/lac/vector_memory.h>
 
-#    include <boost/signals2.hpp>
+#  include <boost/signals2.hpp>
 
-#    include <kinsol/kinsol.h>
-#    include <kinsol/kinsol_impl.h>
-#    include <nvector/nvector_serial.h>
-#    include <sundials/sundials_math.h>
-#    include <sundials/sundials_types.h>
+#  include <kinsol/kinsol.h>
+#  include <kinsol/kinsol_impl.h>
+#  include <nvector/nvector_serial.h>
+#  include <sundials/sundials_math.h>
+#  include <sundials/sundials_types.h>
 
-#    include <memory>
+#  include <memory>
 
 
 DEAL_II_NAMESPACE_OPEN
 
 // Shorthand notation for KINSOL error codes.
-#    define AssertKINSOL(code) Assert(code >= 0, ExcKINSOLError(code))
+#  define AssertKINSOL(code) Assert(code >= 0, ExcKINSOLError(code))
 
 namespace SUNDIALS
 {
@@ -679,7 +678,6 @@ namespace SUNDIALS
 
 
 DEAL_II_NAMESPACE_CLOSE
-#  endif
 #endif
 
 #endif

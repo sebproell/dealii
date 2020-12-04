@@ -98,7 +98,7 @@ namespace SUNDIALS
    * - >0: Recoverable error (ARKodeReinit will be called if this happens, and
    *       then last function will be attempted again
    * - <0: Unrecoverable error the computation will be aborted and an
-   * assertion will be thrown.
+   *       assertion will be thrown.
    */
   template <typename VectorType>
   using LinearSolveFunction =
@@ -629,7 +629,7 @@ namespace SUNDIALS
      * various settings that are performed by this ARKode object.
      *
      * @return pointer to the ARKODE memory block that can be passed to SUNDIALS
-     * functions
+     *   functions
      */
     void *
     get_arkode_memory() const;
@@ -907,8 +907,8 @@ namespace SUNDIALS
      * the mass matrix. This function is called by ARKode any time a mass
      * matrix update is required. The user should compute the mass matrix (or
      * update all the variables that allow the application of the mass matrix).
-     * This function is guaranteed to be called by ARKode once, before any call
-     * to mass_times_vector().
+     * This function is guaranteed to be called by ARKode at least once, before
+     * any call to mass_times_vector().
      *
      * ARKode supports the case where the mass matrix may depend on time, but
      * not the case where the mass matrix depends on the solution itself.
@@ -917,13 +917,13 @@ namespace SUNDIALS
      * identity is used. If the mass_times_setup() function is not provided,
      * then mass_times_vector() should do all the work by itself.
      *
-     * If the user uses a matrix based computation of the mass matrix, then
+     * If the user uses a matrix-based computation of the mass matrix, then
      * this is the right place where an assembly routine should be called to
      * assemble the matrix. Subsequent calls (possibly  more than one) to
      * mass_times_vector() can assume that this function has been called at
      * least once.
      *
-     * Notice that no assumption is made by this interface on what the user
+     * @note No assumption is made by this interface on what the user
      * should do in this function. ARKode only assumes that after a call to
      * mass_times_setup() it is possible to call mass_times_vector().
      *
@@ -977,7 +977,8 @@ namespace SUNDIALS
      * function is called by ARKode any time a Jacobian update is required.
      * The user should compute the Jacobian (or update all the variables that
      * allow the application of Jacobian). This function is guaranteed to
-     * be called by ARKode once, before any call to jacobian_times_vector().
+     * be called by ARKode at least once, before any call to
+     * jacobian_times_vector().
      *
      * If the jacobian_times_setup() function is not provided, then
      * jacobian_times_vector() should do all the work by itself.
@@ -988,7 +989,7 @@ namespace SUNDIALS
      * jacobian_times_vector() can assume that this function has been called at
      * least once.
      *
-     * Notice that no assumption is made by this interface on what the user
+     * @note No assumption is made by this interface on what the user
      * should do in this function. ARKode only assumes that after a call to
      * jacobian_times_setup() it is possible to call jacobian_times_vector().
      *
@@ -1010,9 +1011,12 @@ namespace SUNDIALS
     /**
      * A LinearSolveFunction object that users may supply and that is intended
      * to solve the linearized system $Ax=b$, where $A = M-\gamma J$ is the
-     * Jacobian of the nonlinear residual. The matrix-vector product $Ax$ is
-     * encoded in the supplied SundialsOperator. If a preconditioner was set
-     * through jacobian_preconditioner_solve(), it is encoded in the
+     * Jacobian of the nonlinear residual. The application fo the mass matrix
+     * $M$ and Jacobian $J$ are known through the functions mass_times_vector()
+     * and jacobian_times_vector() and $\gamma$ is a factor provided by
+     * SUNDIALS. The matrix-vector product $Ax$ is encoded in the supplied
+     * SundialsOperator. If a preconditioner was set through
+     * jacobian_preconditioner_solve(), it is encoded in the
      * SundialsPreconditioner. If no preconditioner was supplied this way, the
      * preconditioner is the identity matrix, i.e., no preconditioner. The user
      * is free to use a custom preconditioner in this function object that is
@@ -1022,7 +1026,6 @@ namespace SUNDIALS
      * SUNDIALS packaged SPGMR solver with default settings is used.
      *
      * For more details on the function type refer to LinearSolveFunction.
-     *
      */
     LinearSolveFunction<VectorType> solve_linearized_system;
 
@@ -1040,12 +1043,11 @@ namespace SUNDIALS
      * and applied in mass_times_vector().
      *
      * For more details on the function type refer to LinearSolveFunction.
-     *
      */
     LinearSolveFunction<VectorType> solve_mass;
 
 
-    /*!
+    /**
      * A function object that users may supply to either pass a preconditioner
      * to a SUNDIALS built-in solver or to apply a custom preconditioner within
      * the user's own linear solve specified in solve_linearized_system().
@@ -1133,7 +1135,7 @@ namespace SUNDIALS
                       double            gamma)>
       jacobian_preconditioner_setup;
 
-    /*!
+    /**
      * A function object that users may supply to either pass a preconditioner
      * to a SUNDIALS built-in solver or to apply a custom preconditioner within
      * the user's own linear solve specified in solve_mass().
@@ -1306,48 +1308,99 @@ namespace SUNDIALS
   };
 
 #  if DEAL_II_SUNDIALS_VERSION_GTE(5, 4, 0)
-  /*!
+
+  /**
    * A linear operator that wraps SUNDIALS functionality.
    */
   template <typename VectorType>
   struct SundialsOperator
   {
+    /**
+     * Apply this LinearOperator to @p src and store the result in @dst.
+     */
     void
     vmult(VectorType &dst, const VectorType &src) const;
 
+    /**
+     * Constructor.
+     *
+     * @param solver the ARKode solver that uses this operator
+     * @param A_data data required by @p a_times_fn
+     * @param a_times_fn a function pointer to the function that computes A*v
+     */
     SundialsOperator(ARKode<VectorType> &solver,
                      void *              A_data,
                      ATimesFn            a_times_fn);
 
   private:
-    // Todo the solver reference can probably removed once vectors are no longer
-    // copied
+    /**
+     * Reference to the ARKode object that uses this SundialsOperator.
+     */
     ARKode<VectorType> &solver;
-    void *              A_data;
-    ATimesFn            a_times_fn;
+    /**
+     * Data necessary to evaluate a_times_fn.
+     */
+    void *A_data;
+
+    /**
+     * Function pointer declared by SUNDIALS to evaluate the matrix vector
+     * product.
+     */
+    ATimesFn a_times_fn;
   };
 
-  /*!
-   * A linear operator that wraps SUNDIALS preconditioner functionality.
+  /**
+   * A linear operator that wraps SUNDIALS preconditioner functionality. The
+   * vmult() function solves the preconditioner equation $Px=b$, i.e., it
+   * computes $x=P^{-1}b$.
    */
   template <typename VectorType>
   struct SundialsPreconditioner
   {
+    /**
+     * Apply the wrapped preconditioner, i.e., solve $Px=b$ where $x$ is the
+     * @p dst vector and $b$ the @p src vector.
+     *
+     * @param dst result vector of the preconditioner application
+     * @param src target vector of the preconditioner application
+     */
     void
     vmult(VectorType &dst, const VectorType &src) const;
 
+    /**
+     * Constructor.
+     *
+     * @param solver the ARKode solver that uses this operator
+     * @param P_data data required by @p p_solve_fn
+     * @param p_solve_fn a function pointer to the function that computes A*v
+     */
     SundialsPreconditioner(ARKode<VectorType> &solver,
                            void *              P_data,
                            PSolveFn            p_solve_fn,
                            double              tol);
 
   private:
-    // Todo the solver reference can probably removed once vectors are no longer
-    // copied
+    /**
+     * Reference to the ARKode object that uses this SundialsPreconditioner.
+     */
     ARKode<VectorType> &solver;
-    void *              P_data;
-    PSolveFn            p_solve_fn;
-    double              tol;
+
+    /**
+     * Data necessary to calls p_solve_fn
+     */
+    void *P_data;
+
+    /**
+     * Function pointer to a function that computes the preconditioner
+     * application.
+     */
+    PSolveFn p_solve_fn;
+
+    /**
+     * Potential tolerance to use in the internal solve of the preconditioner
+     * equation.
+     */
+    double tol;
   };
 
 #  endif
