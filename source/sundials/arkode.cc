@@ -66,6 +66,7 @@ namespace SUNDIALS
                                N_Vector yp,
                                void *   user_data)
     {
+      AssertThrow(user_data != nullptr, dealii::ExcInternalError());
       ARKode<VectorType> &solver =
         *static_cast<ARKode<VectorType> *>(user_data);
       GrowingVectorMemory<VectorType> mem;
@@ -94,6 +95,7 @@ namespace SUNDIALS
                                N_Vector yp,
                                void *   user_data)
     {
+      AssertThrow(user_data != nullptr, dealii::ExcInternalError());
       ARKode<VectorType> &solver =
         *static_cast<ARKode<VectorType> *>(user_data);
       GrowingVectorMemory<VectorType> mem;
@@ -254,6 +256,7 @@ namespace SUNDIALS
                                     void *   user_data,
                                     N_Vector)
     {
+      AssertThrow(user_data != nullptr, dealii::ExcInternalError());
       ARKode<VectorType> &solver =
         *static_cast<ARKode<VectorType> *>(user_data);
       GrowingVectorMemory<VectorType> mem;
@@ -285,6 +288,7 @@ namespace SUNDIALS
                                       N_Vector fy,
                                       void *   user_data)
     {
+      AssertThrow(user_data != nullptr, dealii::ExcInternalError());
       ARKode<VectorType> &solver =
         *static_cast<ARKode<VectorType> *>(user_data);
       GrowingVectorMemory<VectorType>            mem;
@@ -312,6 +316,7 @@ namespace SUNDIALS
                                  int      lr,
                                  void *   user_data)
     {
+      AssertThrow(user_data != nullptr, dealii::ExcInternalError());
       ARKode<VectorType> &solver =
         *static_cast<ARKode<VectorType> *>(user_data);
 
@@ -346,6 +351,7 @@ namespace SUNDIALS
                                  realtype     gamma,
                                  void *       user_data)
     {
+      AssertThrow(user_data != nullptr, dealii::ExcInternalError());
       ARKode<VectorType> &solver =
         *static_cast<ARKode<VectorType> *>(user_data);
       GrowingVectorMemory<VectorType>            mem;
@@ -368,6 +374,7 @@ namespace SUNDIALS
                                      realtype t,
                                      void *   mtimes_data)
     {
+      AssertThrow(mtimes_data != nullptr, dealii::ExcInternalError());
       ARKode<VectorType> &solver =
         *static_cast<ARKode<VectorType> *>(mtimes_data);
       GrowingVectorMemory<VectorType>            mem;
@@ -389,6 +396,7 @@ namespace SUNDIALS
     int
     t_arkode_mass_times_setup_function(realtype t, void *mtimes_data)
     {
+      AssertThrow(mtimes_data != nullptr, dealii::ExcInternalError());
       ARKode<VectorType> &solver =
         *static_cast<ARKode<VectorType> *>(mtimes_data);
 
@@ -406,6 +414,7 @@ namespace SUNDIALS
                                       int      lr,
                                       void *   user_data)
     {
+      AssertThrow(user_data != nullptr, dealii::ExcInternalError());
       ARKode<VectorType> &solver =
         *static_cast<ARKode<VectorType> *>(user_data);
 
@@ -428,6 +437,7 @@ namespace SUNDIALS
     int
     t_arkode_mass_prec_setup_function(realtype t, void *user_data)
     {
+      AssertThrow(user_data != nullptr, dealii::ExcInternalError());
       ARKode<VectorType> &solver =
         *static_cast<ARKode<VectorType> *>(user_data);
 
@@ -517,6 +527,16 @@ namespace SUNDIALS
 
 
     template <typename VectorType>
+    int arkode_linsol_initialize(SUNLinearSolver)
+    {
+      // this method is currently only provided because SUNDIALS 4.0.0 requires
+      // it - no user-set action is possible
+      return 0;
+    }
+
+
+
+    template <typename VectorType>
     int
     arkode_linsol_set_a_times(SUNLinearSolver LS, void *A_data, ATimesFn ATimes)
     {
@@ -545,7 +565,73 @@ namespace SUNDIALS
 
   } // namespace
 
-#  if DEAL_II_SUNDIALS_VERSION_GTE(5, 4, 0)
+#  if DEAL_II_SUNDIALS_VERSION_GTE(4, 0, 0)
+
+#    if DEAL_II_SUNDIALS_VERSION_LT(5, 0, 0)
+  SUNLinearSolver
+  SUNLinSolNewEmpty()
+  {
+    SUNLinearSolver     LS;
+    SUNLinearSolver_Ops ops;
+
+    /* create linear solver object */
+    LS = NULL;
+    LS = (SUNLinearSolver)malloc(sizeof *LS);
+    if (LS == NULL)
+      return (NULL);
+
+    /* create linear solver ops structure */
+    ops = NULL;
+    ops = (SUNLinearSolver_Ops)malloc(sizeof *ops);
+    if (ops == NULL)
+      {
+        free(LS);
+        return (NULL);
+      }
+
+    /* initialize operations to NULL */
+    ops->gettype           = NULL;
+    ops->setatimes         = NULL;
+    ops->setpreconditioner = NULL;
+    ops->setscalingvectors = NULL;
+    ops->initialize        = NULL;
+    ops->setup             = NULL;
+    ops->solve             = NULL;
+    ops->numiters          = NULL;
+    ops->resnorm           = NULL;
+    ops->resid             = NULL;
+    ops->lastflag          = NULL;
+    ops->space             = NULL;
+    ops->free              = NULL;
+
+    /* attach ops and initialize content to NULL */
+    LS->ops     = ops;
+    LS->content = NULL;
+
+    return (LS);
+  }
+
+  /* -----------------------------------------------------------------
+   * Free a generic SUNLinearSolver (assumes content is already empty)
+   * ----------------------------------------------------------------- */
+
+  void
+  SUNLinSolFreeEmpty(SUNLinearSolver S)
+  {
+    if (S == NULL)
+      return;
+
+    /* free non-NULL ops structure */
+    if (S->ops)
+      free(S->ops);
+    S->ops = NULL;
+
+    /* free overall N_Vector object and return */
+    free(S);
+    return;
+  }
+
+#    endif
 
   /*!
    * Attach wrapper functions to SUNDIALS' linear solver interface. We pretend
@@ -560,10 +646,11 @@ namespace SUNDIALS
     SundialsLinearSolverWrapper(ARKode<VectorType> &            solver,
                                 LinearSolveFunction<VectorType> lsolve)
     {
-      sun_linear_solver                 = SUNLinSolNewEmpty();
-      sun_linear_solver->ops->gettype   = arkode_linsol_get_type;
-      sun_linear_solver->ops->solve     = arkode_linsol_solve<VectorType>;
-      sun_linear_solver->ops->setup     = arkode_linsol_setup<VectorType>;
+      sun_linear_solver                  = SUNLinSolNewEmpty();
+      sun_linear_solver->ops->gettype    = arkode_linsol_get_type;
+      sun_linear_solver->ops->solve      = arkode_linsol_solve<VectorType>;
+      sun_linear_solver->ops->setup      = arkode_linsol_setup<VectorType>;
+      sun_linear_solver->ops->initialize = arkode_linsol_initialize<VectorType>;
       sun_linear_solver->ops->setatimes = arkode_linsol_set_a_times<VectorType>;
       sun_linear_solver->ops->setpreconditioner =
         arkode_linsol_set_preconditioner<VectorType>;
@@ -588,71 +675,6 @@ namespace SUNDIALS
     SUNLinearSolver                 sun_linear_solver;
     LinearSolverContent<VectorType> content;
   };
-
-
-
-  /**
-   * A linear operator that wraps SUNDIALS functionality.
-   */
-  template <typename VectorType>
-  struct SundialsOperator
-  {
-    /**
-     * Apply this LinearOperator to @p src and store the result in @dst.
-     */
-    void
-    vmult(VectorType &dst, const VectorType &src) const;
-
-    /**
-     * Constructor.
-     *
-     * @param solver the ARKode solver that uses this operator
-     * @param A_data data required by @p a_times_fn
-     * @param a_times_fn a function pointer to the function that computes A*v
-     */
-    SundialsOperator(ARKode<VectorType> &solver,
-                     void *              A_data,
-                     ATimesFn            a_times_fn);
-
-  private:
-    // Todo the solver reference can probably removed once vectors are no longer
-    // copied
-    ARKode<VectorType> &solver;
-    /**
-     * Data necessary to evaluate a_times_fn.
-     */
-    void *A_data;
-
-    /**
-     * Function pointer declared by SUNDIALS to evaluate the matrix vector
-     * product.
-     */
-    ATimesFn a_times_fn;
-  };
-
-  /**
-   * A linear operator that wraps SUNDIALS preconditioner functionality.
-   */
-  template <typename VectorType>
-  struct SundialsPreconditioner
-  {
-    void
-    vmult(VectorType &dst, const VectorType &src) const;
-
-    SundialsPreconditioner(ARKode<VectorType> &solver,
-                           void *              P_data,
-                           PSolveFn            p_solve_fn,
-                           double              tol);
-
-  private:
-    // Todo the solver reference can probably removed once vectors are no longer
-    // copied
-    ARKode<VectorType> &solver;
-    void *              P_data;
-    PSolveFn            p_solve_fn;
-    double              tol;
-  };
-
 
 #  endif
 
@@ -975,8 +997,12 @@ namespace SUNDIALS
         AssertARKode(status);
       }
 
+    // for version 4.0.0 this call must be made before solver settings
+    status = ARKStepSetUserData(arkode_mem, this);
+    AssertARKode(status);
+
     // Initialize solver
-    // TODO currently only iterative linear solvers are supported
+    // currently only iterative linear solvers are supported
     if (jacobian_times_vector)
       {
         SUNLinearSolver sun_linear_solver;
@@ -1085,9 +1111,6 @@ namespace SUNDIALS
     status = ARKStepSetInitStep(arkode_mem, current_time_step);
     AssertARKode(status);
 
-    status = ARKStepSetUserData(arkode_mem, this);
-    AssertARKode(status);
-
     status = ARKStepSetStopTime(arkode_mem, data.final_time);
     AssertARKode(status);
 
@@ -1145,7 +1168,8 @@ namespace SUNDIALS
     return arkode_mem;
   }
 
-#  if DEAL_II_SUNDIALS_VERSION_GTE(5, 4, 0)
+#  if DEAL_II_SUNDIALS_VERSION_GTE(4, 0, 0)
+
   template <typename VectorType>
   SundialsOperator<VectorType>::SundialsOperator(ARKode<VectorType> &solver,
                                                  void *              A_data,
@@ -1219,7 +1243,7 @@ namespace SUNDIALS
   template class ARKode<Vector<double>>;
   template class ARKode<BlockVector<double>>;
 
-#  if DEAL_II_SUNDIALS_VERSION_GTE(5, 4, 0)
+#  if DEAL_II_SUNDIALS_VERSION_GTE(4, 0, 0)
   template struct SundialsOperator<Vector<double>>;
   template struct SundialsOperator<BlockVector<double>>;
 
@@ -1233,7 +1257,7 @@ namespace SUNDIALS
   template class ARKode<TrilinosWrappers::MPI::Vector>;
   template class ARKode<TrilinosWrappers::MPI::BlockVector>;
 
-#      if DEAL_II_SUNDIALS_VERSION_GTE(5, 4, 0)
+#      if DEAL_II_SUNDIALS_VERSION_GTE(4, 0, 0)
   template struct SundialsOperator<TrilinosWrappers::MPI::Vector>;
   template struct SundialsOperator<TrilinosWrappers::MPI::BlockVector>;
 

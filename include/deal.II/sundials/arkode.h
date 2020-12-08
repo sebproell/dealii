@@ -53,7 +53,7 @@
 DEAL_II_NAMESPACE_OPEN
 
 // Forward declarations
-#  if DEAL_II_SUNDIALS_VERSION_GTE(5, 4, 0)
+#  if DEAL_II_SUNDIALS_VERSION_GTE(4, 0, 0)
 #    ifndef DOXYGEN
 namespace SUNDIALS
 {
@@ -78,7 +78,7 @@ namespace SUNDIALS
  */
 namespace SUNDIALS
 {
-#  if DEAL_II_SUNDIALS_VERSION_GTE(5, 4, 0)
+#  if DEAL_II_SUNDIALS_VERSION_GTE(4, 0, 0)
   /**
    * Type of function objects to interface with SUNDIALS linear solvers
    *
@@ -1288,7 +1288,7 @@ namespace SUNDIALS
      */
     GrowingVectorMemory<VectorType> mem;
 
-#  if DEAL_II_SUNDIALS_VERSION_GTE(5, 4, 0)
+#  if DEAL_II_SUNDIALS_VERSION_GTE(4, 0, 0)
     std::unique_ptr<SundialsLinearSolverWrapper<VectorType>> linear_solver;
     std::unique_ptr<SundialsLinearSolverWrapper<VectorType>> mass_solver;
 #  endif
@@ -1307,7 +1307,7 @@ namespace SUNDIALS
 #  endif   // DEAL_II_WITH_PETSC
   };
 
-#  if DEAL_II_SUNDIALS_VERSION_GTE(5, 4, 0)
+#  if DEAL_II_SUNDIALS_VERSION_GTE(4, 0, 0)
 
   /**
    * A linear operator that wraps SUNDIALS functionality.
