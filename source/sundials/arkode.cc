@@ -42,6 +42,9 @@
 #    include <arkode/arkode_arkstep.h>
 #    include <sunlinsol/sunlinsol_spgmr.h>
 #    include <sunnonlinsol/sunnonlinsol_fixedpoint.h>
+#    if DEAL_II_SUNDIALS_VERSION_LT(5, 0, 0)
+#      include <deal.II/sundials/sunlinsol_newempty.h>
+#    endif
 #  endif
 
 #  include <iostream>
@@ -576,72 +579,6 @@ namespace SUNDIALS
   } // namespace
 
 #  if DEAL_II_SUNDIALS_VERSION_GTE(4, 0, 0)
-
-#    if DEAL_II_SUNDIALS_VERSION_LT(5, 0, 0)
-  SUNLinearSolver
-  SUNLinSolNewEmpty()
-  {
-    SUNLinearSolver     LS;
-    SUNLinearSolver_Ops ops;
-
-    /* create linear solver object */
-    LS = NULL;
-    LS = (SUNLinearSolver)malloc(sizeof *LS);
-    if (LS == NULL)
-      return (NULL);
-
-    /* create linear solver ops structure */
-    ops = NULL;
-    ops = (SUNLinearSolver_Ops)malloc(sizeof *ops);
-    if (ops == NULL)
-      {
-        free(LS);
-        return (NULL);
-      }
-
-    /* initialize operations to NULL */
-    ops->gettype           = NULL;
-    ops->setatimes         = NULL;
-    ops->setpreconditioner = NULL;
-    ops->setscalingvectors = NULL;
-    ops->initialize        = NULL;
-    ops->setup             = NULL;
-    ops->solve             = NULL;
-    ops->numiters          = NULL;
-    ops->resnorm           = NULL;
-    ops->resid             = NULL;
-    ops->lastflag          = NULL;
-    ops->space             = NULL;
-    ops->free              = NULL;
-
-    /* attach ops and initialize content to NULL */
-    LS->ops     = ops;
-    LS->content = NULL;
-
-    return (LS);
-  }
-
-  /* -----------------------------------------------------------------
-   * Free a generic SUNLinearSolver (assumes content is already empty)
-   * ----------------------------------------------------------------- */
-
-  void
-  SUNLinSolFreeEmpty(SUNLinearSolver S)
-  {
-    if (S == NULL)
-      return;
-
-    /* free non-NULL ops structure */
-    if (S->ops)
-      free(S->ops);
-    S->ops = NULL;
-
-    /* free overall N_Vector object and return */
-    free(S);
-    return;
-  }
-
-#    endif
 
   /*!
    * Attach wrapper functions to SUNDIALS' linear solver interface. We pretend
