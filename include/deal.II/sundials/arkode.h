@@ -1369,7 +1369,7 @@ namespace SUNDIALS
   struct SundialsOperator
   {
     /**
-     * Apply this LinearOperator to @p src and store the result in @dst.
+     * Apply this LinearOperator to @p src and store the result in @p dst.
      */
     void
     vmult(VectorType &dst, const VectorType &src) const;
