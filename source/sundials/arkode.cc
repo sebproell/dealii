@@ -528,7 +528,6 @@ namespace SUNDIALS
     int
     arkode_linsol_setup(SUNLinearSolver LS, SUNMatrix)
     {
-      // TODO we could provide the user with a function to hook in here?
       auto content = access_content<VectorType>(LS);
       if (content->preconditioner_setup)
         return content->preconditioner_setup(content->P_data);
@@ -1248,9 +1247,10 @@ namespace SUNDIALS
     N_Vector sun_dst = solver.create_vector(dst);
     N_Vector sun_src = solver.create_vector(src);
     copy(sun_src, src);
-    // TODO currently no distinction between left and right preconditioning is
-    // possible
-    int status = p_solve_fn(P_data, sun_src, sun_dst, tol, 0);
+    // for custom preconditioners no distinction between left and right
+    // preconditioning is made
+    int status =
+      p_solve_fn(P_data, sun_src, sun_dst, tol, 0 /*precondition_type*/);
     (void)status;
     AssertARKode(status);
 

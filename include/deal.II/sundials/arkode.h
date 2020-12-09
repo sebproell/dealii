@@ -1095,7 +1095,8 @@ namespace SUNDIALS
      * @param[in] tol the tolerance up to which the system should be solved
      * @param[in] lr an input flag indicating whether the preconditioner solve
      * is to use the left preconditioner (lr = 1) or the right preconditioner
-     * (lr = 2). Only relevant if used with a SUNDIALS packaged solver
+     * (lr = 2). Only relevant if used with a SUNDIALS packaged solver. If used
+     * with a custom solve_mass() function this will be set to zero.
      *
      * This function should return:
      * - 0: Success
@@ -1179,7 +1180,8 @@ namespace SUNDIALS
      * @param[in] tol the tolerance up to which the system should be solved
      * @param[in] lr an input flag indicating whether the preconditioner solve
      * is to use the left preconditioner (lr = 1) or the right preconditioner
-     * (lr = 2). Only relevant if used with a SUNDIALS packaged solver
+     * (lr = 2). Only relevant if used with a SUNDIALS packaged solver. If used
+     * with a custom solve_mass() function this will be set to zero.
      *
      * This function should return:
      * - 0: Success
@@ -1401,9 +1403,9 @@ namespace SUNDIALS
   };
 
   /**
-   * A linear operator that wraps SUNDIALS preconditioner functionality. The
-   * vmult() function solves the preconditioner equation $Px=b$, i.e., it
-   * computes $x=P^{-1}b$.
+   * A linear operator that wraps preconditioner functionality as specified by
+   * SUNDIALS. The vmult() function solves the preconditioner equation $Px=b$,
+   * i.e., it computes $x=P^{-1}b$.
    */
   template <typename VectorType>
   struct SundialsPreconditioner
@@ -1424,6 +1426,8 @@ namespace SUNDIALS
      * @param solver the ARKode solver that uses this operator
      * @param P_data data required by @p p_solve_fn
      * @param p_solve_fn a function pointer to the function that computes A*v
+     * @param tol tolerance that an iterative solver should use to judge
+     * convergence
      */
     SundialsPreconditioner(ARKode<VectorType> &solver,
                            void *              P_data,
