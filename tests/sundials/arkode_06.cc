@@ -23,6 +23,8 @@
 
 #include <deal.II/sundials/arkode.h>
 
+#include <arkode/arkode_arkstep.h>
+
 #include "../tests.h"
 
 
@@ -140,6 +142,13 @@ main(int argc, char **argv)
             << std::endl;
     return 0;
   };
+
+  // after 5.2.0 a special interpolation mode should be used for stiff problems
+#if DEAL_II_SUNDIALS_VERSION_GTE(5, 2, 0)
+  ode.custom_setup = [&](void *arkode_mem) {
+    ARKStepSetInterpolantType(arkode_mem, ARK_INTERP_LAGRANGE);
+  };
+#endif
 
   Vector<double> y(3);
   y[0] = u0;
