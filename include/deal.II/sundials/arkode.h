@@ -403,6 +403,10 @@ namespace SUNDIALS
        * of the problem is linear
        * @param implicit_function_is_time_independent Specifies that the
        * implicit portion of the problem is linear and time independent
+       * @param mass_is_time_independent Specifies that the mass pre-factor is
+       * independent of time
+       * @param anderson_acceleration_subspace The number of vectors to use for
+       * Anderson acceleration within the packaged SUNDIALS solver.
        *
        * Error parameters:
        *
@@ -421,6 +425,8 @@ namespace SUNDIALS
         const unsigned int maximum_non_linear_iterations         = 10,
         const bool         implicit_function_is_linear           = false,
         const bool         implicit_function_is_time_independent = false,
+        const bool         mass_is_time_independent              = false,
+        const int          anderson_acceleration_subspace        = 3,
         // Error parameters
         const double absolute_tolerance = 1e-6,
         const double relative_tolerance = 1e-5)
@@ -436,6 +442,8 @@ namespace SUNDIALS
         , implicit_function_is_linear(implicit_function_is_linear)
         , implicit_function_is_time_independent(
             implicit_function_is_time_independent)
+        , mass_is_time_independent(mass_is_time_independent)
+        , anderson_acceleration_subspace(anderson_acceleration_subspace)
       {}
 
       /**
@@ -497,6 +505,9 @@ namespace SUNDIALS
                           implicit_function_is_linear);
         prm.add_parameter("Implicit function is time independent",
                           implicit_function_is_time_independent);
+        prm.add_parameter("Mass is time independent", mass_is_time_independent);
+        prm.add_parameter("Anderson-acceleration subspace",
+                          anderson_acceleration_subspace);
         prm.leave_subsection();
 
         prm.enter_subsection("Error control");
@@ -562,6 +573,18 @@ namespace SUNDIALS
        * independent.
        */
       bool implicit_function_is_time_independent;
+
+      /**
+       * Specify whether the mass pre-factor is time independent. Has no effect
+       * if no mass is specified.
+       */
+      bool mass_is_time_independent;
+
+      /**
+       * Number of subspace vectors to use for Anderson acceleration. Only
+       * meaningful if the packaged SUNDIALS fixed-point solver is used.
+       */
+      int anderson_acceleration_subspace;
     };
 
     /**

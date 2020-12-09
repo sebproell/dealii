@@ -66,7 +66,7 @@ namespace SUNDIALS
                                N_Vector yp,
                                void *   user_data)
     {
-      AssertThrow(user_data != nullptr, dealii::ExcInternalError());
+      Assert(user_data != nullptr, ExcInternalError());
       ARKode<VectorType> &solver =
         *static_cast<ARKode<VectorType> *>(user_data);
       GrowingVectorMemory<VectorType> mem;
@@ -95,7 +95,7 @@ namespace SUNDIALS
                                N_Vector yp,
                                void *   user_data)
     {
-      AssertThrow(user_data != nullptr, dealii::ExcInternalError());
+      Assert(user_data != nullptr, ExcInternalError());
       ARKode<VectorType> &solver =
         *static_cast<ARKode<VectorType> *>(user_data);
       GrowingVectorMemory<VectorType> mem;
@@ -129,6 +129,7 @@ namespace SUNDIALS
                             N_Vector,
                             N_Vector)
     {
+      Assert(arkode_mem->ark_user_data != nullptr, ExcInternalError());
       ARKode<VectorType> &solver =
         *static_cast<ARKode<VectorType> *>(arkode_mem->ark_user_data);
       GrowingVectorMemory<VectorType> mem;
@@ -171,6 +172,7 @@ namespace SUNDIALS
                             N_Vector ycur,
                             N_Vector fcur)
     {
+      Assert(arkode_mem->ark_user_data != nullptr, ExcInternalError());
       ARKode<VectorType> &solver =
         *static_cast<ARKode<VectorType> *>(arkode_mem->ark_user_data);
       GrowingVectorMemory<VectorType> mem;
@@ -208,6 +210,7 @@ namespace SUNDIALS
     int
     t_arkode_setup_mass(ARKodeMem arkode_mem, N_Vector, N_Vector, N_Vector)
     {
+      Assert(arkode_mem->ark_user_data != nullptr, ExcInternalError());
       ARKode<VectorType> &solver =
         *static_cast<ARKode<VectorType> *>(arkode_mem->ark_user_data);
       int err = solver.setup_mass(arkode_mem->ark_tn);
@@ -227,6 +230,7 @@ namespace SUNDIALS
 #    endif
     )
     {
+      Assert(arkode_mem->ark_user_data != nullptr, ExcInternalError());
       ARKode<VectorType> &solver =
         *static_cast<ARKode<VectorType> *>(arkode_mem->ark_user_data);
       GrowingVectorMemory<VectorType> mem;
@@ -256,7 +260,7 @@ namespace SUNDIALS
                                     void *   user_data,
                                     N_Vector)
     {
-      AssertThrow(user_data != nullptr, dealii::ExcInternalError());
+      Assert(user_data != nullptr, ExcInternalError());
       ARKode<VectorType> &solver =
         *static_cast<ARKode<VectorType> *>(user_data);
       GrowingVectorMemory<VectorType> mem;
@@ -288,7 +292,7 @@ namespace SUNDIALS
                                       N_Vector fy,
                                       void *   user_data)
     {
-      AssertThrow(user_data != nullptr, dealii::ExcInternalError());
+      Assert(user_data != nullptr, ExcInternalError());
       ARKode<VectorType> &solver =
         *static_cast<ARKode<VectorType> *>(user_data);
       GrowingVectorMemory<VectorType>            mem;
@@ -316,7 +320,7 @@ namespace SUNDIALS
                                  int      lr,
                                  void *   user_data)
     {
-      AssertThrow(user_data != nullptr, dealii::ExcInternalError());
+      Assert(user_data != nullptr, ExcInternalError());
       ARKode<VectorType> &solver =
         *static_cast<ARKode<VectorType> *>(user_data);
 
@@ -351,7 +355,7 @@ namespace SUNDIALS
                                  realtype     gamma,
                                  void *       user_data)
     {
-      AssertThrow(user_data != nullptr, dealii::ExcInternalError());
+      Assert(user_data != nullptr, ExcInternalError());
       ARKode<VectorType> &solver =
         *static_cast<ARKode<VectorType> *>(user_data);
       GrowingVectorMemory<VectorType>            mem;
@@ -374,7 +378,7 @@ namespace SUNDIALS
                                      realtype t,
                                      void *   mtimes_data)
     {
-      AssertThrow(mtimes_data != nullptr, dealii::ExcInternalError());
+      Assert(mtimes_data != nullptr, ExcInternalError());
       ARKode<VectorType> &solver =
         *static_cast<ARKode<VectorType> *>(mtimes_data);
       GrowingVectorMemory<VectorType>            mem;
@@ -396,7 +400,7 @@ namespace SUNDIALS
     int
     t_arkode_mass_times_setup_function(realtype t, void *mtimes_data)
     {
-      AssertThrow(mtimes_data != nullptr, dealii::ExcInternalError());
+      Assert(mtimes_data != nullptr, ExcInternalError());
       ARKode<VectorType> &solver =
         *static_cast<ARKode<VectorType> *>(mtimes_data);
 
@@ -414,7 +418,7 @@ namespace SUNDIALS
                                       int      lr,
                                       void *   user_data)
     {
-      AssertThrow(user_data != nullptr, dealii::ExcInternalError());
+      Assert(user_data != nullptr, ExcInternalError());
       ARKode<VectorType> &solver =
         *static_cast<ARKode<VectorType> *>(user_data);
 
@@ -437,12 +441,14 @@ namespace SUNDIALS
     int
     t_arkode_mass_prec_setup_function(realtype t, void *user_data)
     {
-      AssertThrow(user_data != nullptr, dealii::ExcInternalError());
+      Assert(user_data != nullptr, ExcInternalError());
       ARKode<VectorType> &solver =
         *static_cast<ARKode<VectorType> *>(user_data);
 
       return solver.mass_preconditioner_setup(t);
     }
+
+
 
     /**
      * storage for internal content of the linear solver wrapper
@@ -465,10 +471,15 @@ namespace SUNDIALS
 
 
 
+    /**
+     * Access our LinearSolverContent from the generic content of the
+     * SUNLinearSolver @p ls.
+     */
     template <typename VectorType>
     LinearSolverContent<VectorType> *
     access_content(SUNLinearSolver ls)
     {
+      Assert(ls->content != nullptr, ExcInternalError());
       return static_cast<LinearSolverContent<VectorType> *>(ls->content);
     }
 
@@ -530,7 +541,7 @@ namespace SUNDIALS
     int arkode_linsol_initialize(SUNLinearSolver)
     {
       // this method is currently only provided because SUNDIALS 4.0.0 requires
-      // it - no user-set action is possible
+      // it - no user-set action is implemented so far
       return 0;
     }
 
@@ -1054,10 +1065,10 @@ namespace SUNDIALS
     else
       {
         N_Vector y_template = create_vector(solution);
-        int anderson_acceleration_subspace = 3;
 
         SUNNonlinearSolver fixed_point_solver =
-          SUNNonlinSol_FixedPoint(y_template, anderson_acceleration_subspace);
+          SUNNonlinSol_FixedPoint(y_template,
+                                  data.anderson_acceleration_subspace);
 
         status = ARKStepSetNonlinearSolver(arkode_mem, fixed_point_solver);
         AssertARKode(status);
@@ -1080,7 +1091,8 @@ namespace SUNDIALS
                               PREC_NONE,
                               0 /*krylov subvectors, 0 uses default*/);
           }
-        booleantype mass_time_dependent = SUNFALSE; // TODO make option
+        booleantype mass_time_dependent =
+          data.mass_is_time_independent ? SUNFALSE : SUNTRUE;
         status = ARKStepSetMassLinearSolver(arkode_mem,
                                             sun_mass_linear_solver,
                                             nullptr,
