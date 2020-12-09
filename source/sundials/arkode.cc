@@ -937,6 +937,9 @@ namespace SUNDIALS
 
     status = ARKodeSetOrder(arkode_mem, data.maximum_order);
     AssertARKode(status);
+
+    if (custom_setup)
+      custom_setup(arkode_mem);
   }
 
 #  else
@@ -1116,6 +1119,9 @@ namespace SUNDIALS
 
     status = ARKStepSetOrder(arkode_mem, data.maximum_order);
     AssertARKode(status);
+
+    if (custom_setup)
+      custom_setup(arkode_mem);
   }
 #  endif
 

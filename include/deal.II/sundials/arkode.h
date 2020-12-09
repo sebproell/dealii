@@ -628,6 +628,10 @@ namespace SUNDIALS
      * functions should not be called since this might lead to conflicts with
      * various settings that are performed by this ARKode object.
      *
+     * @note If custom settings of ARKODE functionality (that are not achievable
+     * via the interface of this class) are required, the function
+     * custom_setup() should be used.
+     *
      * @return pointer to the ARKODE memory block that can be passed to SUNDIALS
      *   functions
      */
@@ -1237,6 +1241,30 @@ namespace SUNDIALS
      * used only if implemented.
      */
     std::function<VectorType &()> get_local_tolerances;
+
+    /**
+     * A function object that users may supply and which is intended to perform
+     * custom settings on the supplied @p arkode_mem object. Refer to the
+     * SUNDIALS documentation for valid options.
+     *
+     * For instance, the following code attaches two files for diagnostic and
+     * error output of the internal ARKODE implementation:
+     *
+     *      ode.custom_setup = [&](void *arkode_mem) {
+     *        ARKStepSetErrFile(arkode_mem, errfile);
+     *        ARKStepSetDiagnostics(arkode_mem, diagnostics_file);
+     *      };
+     *
+     * @note This function will be called at the end of all other setup right
+     * before the actual time evloution is started or continued with
+     * solve_ode(). This function is also called when the solver is restarted,
+     * see solver_should_restart(). Consult the SUNDIALS manual to see which
+     * options are still available at this point.
+     *
+     * @param arkode_mem pointer to the ARKODE memory block which can be used
+     * for custom calls to `ARKStepSet...` methods.
+     */
+    std::function<void(void *arkode_mem)> custom_setup;
 
   private:
     /**
