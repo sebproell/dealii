@@ -1133,7 +1133,7 @@ namespace SUNDIALS
     , a_times_fn(a_times_fn)
 
   {
-    AssertThrow(a_times_fn != nullptr, ExcInternalError());
+    Assert(a_times_fn != nullptr, ExcInternalError());
   }
 
 
