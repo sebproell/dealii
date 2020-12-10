@@ -761,18 +761,8 @@ namespace SUNDIALS
     // Free the vectors which are no longer used.
     if (yy)
       {
-#    ifdef DEAL_II_WITH_MPI
-        if (is_serial_vector<VectorType>::value == false)
-          {
-            N_VDestroy_Parallel(yy);
-            N_VDestroy_Parallel(abs_tolls);
-          }
-        else
-#    endif
-          {
-            N_VDestroy_Serial(yy);
-            N_VDestroy_Serial(abs_tolls);
-          }
+        free_vector(yy);
+        free_vector(abs_tolls);
       }
 
     int status;
@@ -903,18 +893,8 @@ namespace SUNDIALS
     // Free the vectors which are no longer used.
     if (yy)
       {
-#    ifdef DEAL_II_WITH_MPI
-        if (is_serial_vector<VectorType>::value == false)
-          {
-            N_VDestroy_Parallel(yy);
-            N_VDestroy_Parallel(abs_tolls);
-          }
-        else
-#    endif
-          {
-            N_VDestroy_Serial(yy);
-            N_VDestroy_Serial(abs_tolls);
-          }
+        free_vector(yy);
+        free_vector(abs_tolls);
       }
 
     int status;
@@ -951,6 +931,35 @@ namespace SUNDIALS
     status = ARKStepSetUserData(arkode_mem, this);
     AssertARKode(status);
 
+    setup_system_solver(solution);
+
+    setup_mass_solver();
+
+    status =
+      ARKStepSetMaxNonlinIters(arkode_mem, data.maximum_non_linear_iterations);
+    AssertARKode(status);
+
+    status = ARKStepSetInitStep(arkode_mem, current_time_step);
+    AssertARKode(status);
+
+    status = ARKStepSetStopTime(arkode_mem, data.final_time);
+    AssertARKode(status);
+
+    status = ARKStepSetOrder(arkode_mem, data.maximum_order);
+    AssertARKode(status);
+
+    if (custom_setup)
+      custom_setup(arkode_mem);
+  }
+
+
+
+  template <typename VectorType>
+  void
+  ARKode<VectorType>::setup_system_solver(const VectorType &solution)
+  {
+    int status;
+    (void)status;
     // Initialize solver
     // currently only iterative linear solvers are supported
     if (jacobian_times_vector)
@@ -1006,9 +1015,20 @@ namespace SUNDIALS
           SUNNonlinSol_FixedPoint(y_template,
                                   data.anderson_acceleration_subspace);
 
+        free_vector(y_template);
         status = ARKStepSetNonlinearSolver(arkode_mem, fixed_point_solver);
         AssertARKode(status);
       }
+  }
+
+
+
+  template <typename VectorType>
+  void
+  ARKode<VectorType>::setup_mass_solver()
+  {
+    int status;
+    (void)status;
 
     if (mass_times_vector)
       {
@@ -1054,22 +1074,6 @@ namespace SUNDIALS
             AssertARKode(status);
           }
       }
-
-    status =
-      ARKStepSetMaxNonlinIters(arkode_mem, data.maximum_non_linear_iterations);
-    AssertARKode(status);
-
-    status = ARKStepSetInitStep(arkode_mem, current_time_step);
-    AssertARKode(status);
-
-    status = ARKStepSetStopTime(arkode_mem, data.final_time);
-    AssertARKode(status);
-
-    status = ARKStepSetOrder(arkode_mem, data.maximum_order);
-    AssertARKode(status);
-
-    if (custom_setup)
-      custom_setup(arkode_mem);
   }
 #  endif
 

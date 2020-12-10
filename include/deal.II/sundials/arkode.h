@@ -1308,6 +1308,26 @@ namespace SUNDIALS
                    << "Please provide an implementation for the function \""
                    << arg1 << "\"");
 
+#  if DEAL_II_SUNDIALS_VERSION_GTE(4, 0, 0)
+
+    /**
+     * Setup the (non)linear solver and preconditioners in the ARKODE memory
+     * object based on the user-specified functions.
+     * @param solution The solution vector whihc is used as a template to create
+     * new vectors.
+     */
+    void
+    setup_system_solver(const VectorType &solution);
+
+    /**
+     * Setup the solver and preconditioner for a non-identity mass matrix in the
+     * ARKODE memory object based on the user-specified functions.
+     */
+    void
+    setup_mass_solver();
+
+#  endif
+
     /**
      * This function is executed at construction time to set the
      * std::function above to trigger an assert if they are not
