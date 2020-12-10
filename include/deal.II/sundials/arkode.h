@@ -633,14 +633,21 @@ namespace SUNDIALS
     /*!
      * Create a new SUNDIALS vector from a given template.
      *
-     * TODO: this method really doesn't belong here and should be removed once
-     * N_Vector "understands" our vectors
+     * @note Vectors created this way should be freed with free_vector().
      *
      * @param template_vector The vector to use as a template for the layout of
      * a new vector.
      */
     N_Vector
     create_vector(const VectorType &template_vector) const;
+
+    /**
+     * Free a SUNDIALS vector created with create_vector().
+     *
+     * @param vector the vector to free
+     */
+    void
+    free_vector(N_Vector vector) const;
 
     /**
      * Provides user access to the internally used ARKODE memory.

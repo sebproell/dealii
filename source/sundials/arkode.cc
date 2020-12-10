@@ -1113,6 +1113,18 @@ namespace SUNDIALS
     return new_vector;
   }
 
+  template <typename VectorType>
+  void
+  ARKode<VectorType>::free_vector(N_Vector vector) const
+  {
+#  ifdef DEAL_II_WITH_MPI
+    if (is_serial_vector<VectorType>::value == false)
+      N_VDestroy_Parallel(vector);
+    else
+#  endif
+      N_VDestroy_Serial(vector);
+  }
+
 
 
   template <typename VectorType>
@@ -1151,6 +1163,9 @@ namespace SUNDIALS
     AssertARKode(status);
 
     copy(dst, sun_dst);
+
+    solver.free_vector(sun_dst);
+    solver.free_vector(sun_src);
   }
 
 
@@ -1192,6 +1207,9 @@ namespace SUNDIALS
     AssertARKode(status);
 
     copy(dst, sun_dst);
+
+    solver.free_vector(sun_dst);
+    solver.free_vector(sun_src);
   }
 #  endif
 
