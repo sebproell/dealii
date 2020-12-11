@@ -35,30 +35,6 @@ namespace SUNDIALS
     N_Vector
     nvector_view(VectorType &vec);
 
-    N_Vector_ID
-    N_VGetVectorID_dealii(N_Vector v);
-
-    N_Vector
-    N_VCloneEmpty_dealii(N_Vector w);
-
-    template <typename VectorType>
-    N_Vector
-    N_VClone_dealii(N_Vector w);
-
-
-    template <typename VectorType>
-    void
-    N_VDestroy_dealii(N_Vector v);
-
-    /**
-     * Helper to create an empty vector with all operation set but no content.
-     * @return a new N_Vector
-     */
-    template <typename VectorType>
-    N_Vector
-    N_VNewEmpty_dealii();
-
-
   } // namespace internal
 } // namespace SUNDIALS
 

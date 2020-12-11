@@ -54,6 +54,39 @@ namespace SUNDIALS
       GrowingVectorMemory<VectorType> mem;
       PointerType                     vector;
     };
+
+    N_Vector_ID
+    N_VGetVectorID_dealii(N_Vector v);
+
+    N_Vector
+    N_VCloneEmpty_dealii(N_Vector w);
+
+    template <typename VectorType>
+    N_Vector
+    N_VClone_dealii(N_Vector w);
+
+
+    template <typename VectorType>
+    void
+    N_VDestroy_dealii(N_Vector v);
+
+
+    template <typename VectorType>
+    void
+    N_VLinearSum_dealii(realtype a,
+                        N_Vector x,
+                        realtype b,
+                        N_Vector y,
+                        N_Vector z);
+
+    /**
+     * Helper to create an empty vector with all operation set but no content.
+     * @return a new N_Vector
+     */
+    template <typename VectorType>
+    N_Vector
+    N_VNewEmpty_dealii();
+
   } // namespace internal
 } // namespace SUNDIALS
 
@@ -87,6 +120,7 @@ template <typename VectorType>
 VectorType *
 SUNDIALS::internal::unwrap_nvector(N_Vector v)
 {
+  Assert(v != nullptr, ExcInternalError());
   Assert(v->content != nullptr, ExcInternalError());
   auto *interface = reinterpret_cast<NVectorContent<VectorType> *>(v->content);
   return interface->get();
@@ -199,6 +233,31 @@ SUNDIALS::internal::N_VDestroy_dealii(N_Vector v)
 
 
 
+template <typename VectorType>
+void
+SUNDIALS::internal::N_VLinearSum_dealii(realtype a,
+                                        N_Vector x,
+                                        realtype b,
+                                        N_Vector y,
+                                        N_Vector z)
+{
+  auto *x_dealii = unwrap_nvector<VectorType>(x);
+  auto *y_dealii = unwrap_nvector<VectorType>(y);
+  auto *z_dealii = unwrap_nvector<VectorType>(z);
+
+  if (z_dealii == x_dealii)
+    z_dealii->sadd(a, b, *y_dealii);
+  else if (z_dealii == y_dealii)
+    z_dealii->sadd(b, a, *x_dealii);
+  else
+    {
+      *z_dealii = 0;
+      z_dealii->add(a, *x_dealii, b, *y_dealii);
+    }
+}
+
+
+
 /**
  * Helper to create an empty vector with all operation set but no content.
  * @return a new N_Vector
@@ -219,8 +278,11 @@ SUNDIALS::internal::N_VNewEmpty_dealii()
   v->ops->nvcloneempty  = N_VCloneEmpty_dealii;
   v->ops->nvdestroy     = N_VDestroy_dealii<VectorType>;
 
+  /* standard vector operations */
+  v->ops->nvlinearsum = N_VLinearSum_dealii<VectorType>;
   return (v);
 }
+
 
 template N_Vector
 SUNDIALS::internal::nvector_view<Vector<double>>(Vector<double> &);

@@ -22,39 +22,56 @@ using namespace SUNDIALS::internal;
 DeclExceptionMsg(NVectorTestError,
                  "The internal N_Vector implementation didn't pass a test");
 
-void
-test_nvector_view(N_Vector v)
-{
-  Assert(v != nullptr, NVectorTestError());
-  Assert(v->content != nullptr, NVectorTestError());
-  deallog << "test_nvector_view OK" << std::endl;
-}
+
 
 template <typename VectorType>
 void
-test_unwrap_vector(N_Vector v)
+test_nvector_view_unwrap()
 {
-  auto *vector = unwrap_nvector<VectorType>(v);
-  Assert(vector != nullptr, NVectorTestError());
-  deallog << "test_unwrap_vector OK" << std::endl;
+  VectorType vector(2);
+  auto       n_vector = nvector_view<VectorType>(vector);
+
+  Assert(n_vector != nullptr, NVectorTestError());
+  Assert(n_vector->content != nullptr, NVectorTestError());
+
+  auto *vector_unwrapped = unwrap_nvector<VectorType>(n_vector);
+  Assert(vector_unwrapped == &vector, NVectorTestError())
+
+      deallog
+    << "test_nvector_view_unwrap OK" << std::endl;
 }
 
+
+
+template <typename VectorType>
 void
-test_get_vector_id(N_Vector v)
+test_get_vector_id()
 {
-  auto id = N_VGetVectorID(v);
+  VectorType vector(2);
+  auto       n_vector = nvector_view<VectorType>(vector);
+  auto       id       = N_VGetVectorID(n_vector);
   Assert(id == SUNDIALS_NVEC_CUSTOM, NVectorTestError());
   deallog << "test_get_vector_id OK" << std::endl;
 }
 
+
+
+template <typename VectorType>
 void
-test_clone(N_Vector v)
+test_clone()
 {
-  auto cloned = N_VClone(v);
+  VectorType vector(3);
+  auto       n_vector = SUNDIALS::internal::nvector_view<VectorType>(vector);
+  auto       cloned   = N_VClone(n_vector);
+
   Assert(cloned != nullptr, NVectorTestError());
+  AssertDimension(unwrap_nvector<VectorType>(cloned)->size(), 3);
+
   N_VDestroy(cloned);
   deallog << "test_clone OK" << std::endl;
 }
+
+
 
 template <typename VectorType>
 void
@@ -86,21 +103,54 @@ test_destroy()
 }
 
 
+
+template <typename VectorType>
+void
+test_linear_sum()
+{
+  VectorType va({1.0, 2.0});
+  VectorType vb({-1.0, -1.0});
+
+
+  auto n_va = SUNDIALS::internal::nvector_view<VectorType>(va);
+  auto n_vb = SUNDIALS::internal::nvector_view<VectorType>(vb);
+
+  auto  n_vc = N_VClone(n_va);
+  auto *p_vc = unwrap_nvector<VectorType>(n_vc);
+
+  // test sum into third vector
+  N_VLinearSum(1.0, n_va, 2.0, n_vb, n_vc);
+  Assert(*p_vc == Vector<double>({-1.0, 0.0}), NVectorTestError());
+  // repeat to test that sum overwrites initial content
+  N_VLinearSum(1.0, n_va, 2.0, n_vb, n_vc);
+  Assert(*p_vc == Vector<double>({-1.0, 0.0}), NVectorTestError());
+
+  // test store sum into one of the summands
+  N_VLinearSum(1.0, n_va, 2.0, n_vb, n_va);
+  Assert(va == Vector<double>({-1.0, 0.0}), NVectorTestError());
+  va = VectorType({1.0, 2.0});
+
+  N_VLinearSum(1.0, n_va, 2.0, n_vb, n_vb);
+  Assert(vb == Vector<double>({-1.0, 0.0}), NVectorTestError());
+
+  deallog << "test_linear_sum OK" << std::endl;
+}
+
+
+
 int
 main(int argc, char **argv)
 {
   initlog();
 
   using VectorType = Vector<double>;
-  GrowingVectorMemory<VectorType>          mem;
-  GrowingVectorMemory<VectorType>::Pointer vector(mem);
-  auto n_vector = SUNDIALS::internal::nvector_view<VectorType>(*vector);
 
-  test_nvector_view(n_vector);
-  test_unwrap_vector<VectorType>(n_vector);
-  test_get_vector_id(n_vector);
-  test_clone(n_vector);
+  // test conversion between vectors
+  test_nvector_view_unwrap<VectorType>();
+  test_get_vector_id<VectorType>();
 
-
+  // test vector operations
+  test_clone<VectorType>();
   test_destroy<VectorType>();
+  test_linear_sum<VectorType>();
 }
