@@ -82,6 +82,10 @@ namespace SUNDIALS
   /**
    * Type of function objects to interface with SUNDIALS linear solvers
    *
+   * This function type encapsulates the action of solving $P^{-1}Ax=P^{-1}b$.
+   * The LinearOperator @p op encapsulates the matrix vector product $Ax$ and
+   * the LinearOperator @p prec encapsulates the application of the
+   * preconditioner $P^{-1}z$.
    * The user can specify function objects of this type to attach custom linear
    * solver routines to SUNDIALS. The two LinearOperators @p op and @p prec are
    * built internally by SUNDIALS based on user settings. The parameters are
@@ -244,9 +248,10 @@ namespace SUNDIALS
    * $f_I(t, y)$ depends linearly on $y$, and if the Newton-based nonlinear
    * solver is chosen, then the system will be solved using only a single
    * Newton iteration. Notice that in order for the Newton solver to be used,
-   * at least the solve_jacobian_system() function should be supplied. If this
-   * function is not supplied, then only the fixed-point iteration will be
-   * supported, and the `implicit_function_is_linear` setting is ignored.
+   * at least the jacobian_times_vector() function (or solve_jacobian_system()
+   * for SUNDIALS version > 4.0.0) should be supplied. If this function is not
+   * supplied, then only the fixed-point iteration will be supported, and the
+   *`implicit_function_is_linear` setting is ignored.
    *
    * The optimal solver (Newton vs fixed-point) is highly problem-dependent.
    * Since fixed-point solvers do not require the solution of any linear
@@ -273,44 +278,49 @@ namespace SUNDIALS
    * $z_j$ where $j < i$). Additional information on the specific predictor
    * algorithms implemented in ARKode is provided in ARKode documentation.
    *
-   * The user has to provide the implementation of the following std::function:
-   *  - reinit_vector;
+   * The user has to provide the implementation of the following
+   *`std::function`s:
+   *  - reinit_vector()
    * and either one or both of
-   *  - implicit_function;
-   *  - explicit_function;
+   *  - implicit_function()
+   *  - explicit_function()
    *
    * If the mass matrix is different from the identity, the user should supply
-   *  - mass_times_vector;
-   * and, optionally,
-   *  - mass_times_setup;
+   *  - mass_times_vector() (or solve_mass_system() for SUNDIALS version
+   *    < 4.0.0) and, optionally,
+   *  - mass_times_setup() (or setup_mass() for SUNDIALS version < 4.0.0)
    *
    * If the use of a Newton method is desired, then the user should also supply
-   *  - jacobian_times_vector;
-   * and optionally
-   *  - jacobian_times_setup;
+   *  - jacobian_times_vector (or solve_jacobian_system() for SUNDIALS version
+   *    < 4.0.0)
+   *  - optional: jacobian_times_setup() (or setup_jacobian() for SUNDIALS
+   *    version < 4.0.0)
    *
-   * Note: although SUNDIALS can provide a difference quotient approximation
-   * of the Jacobian, this is currently not supported through this wrapper.
+   * @note Although SUNDIALS can provide a difference quotient approximation
+   *   of the Jacobian, this is currently not supported through this wrapper.
    *
-   *  A SUNDIALS default solver (SPGMR) is used to solve the linear systems.
-   *  To use a custom linear solver for the mass matrix and/or Jacobian, set:
-   *  - solve_mass and/or
-   *  - solve_jacobian
+   * Only for SUNDIALS version > 4.0.0: A SUNDIALS default solver (SPGMR) is
+   * used to solve the linear systems. To use a custom linear solver for the
+   * mass matrix and/or Jacobian, set:
+   *  - solve_mass() and/or
+   *  - solve_jacobian()
    *
-   * To use a custom preconditioner with either a default or custom linear
-   * solver, set:
-   * - jacobian_preconditioner_solve and/or mass_preconditioner_solve
+   * Only for SUNDIALS version > 4.0.0: To use a custom preconditioner with
+   * either a default or custom linear solver, set:
+   * - jacobian_preconditioner_solve() and/or mass_preconditioner_solve()
    * and, optionally,
-   * - jacobian_preconditioner_setup and/or mass_preconditioner_setup
+   * - jacobian_preconditioner_setup() and/or mass_preconditioner_setup()
    *
    * Also the following functions could be rewritten. By default
    * they do nothing, or are not required.
-   *  - solver_should_restart;
-   *  - get_local_tolerances;
+   *  - solver_should_restart()
+   *  - get_local_tolerances()
    *
    * To produce output at fixed steps, set the function
-   *  - output_step;
+   *  - output_step()
    *
+   * Any other custom settings of the ARKODE object can be specified in
+   *  - custom_setup()
    *
    * To provide a simple example, consider the harmonic oscillator problem:
    * \f[
@@ -1105,10 +1115,10 @@ namespace SUNDIALS
      * If the jacobian_preconditioner_setup() function is not provided, then
      * jacobian_preconditioner_solve() should do all the work by itself.
      *
-     * Notice that no assumption is made by this interface on what the user
-     * should do in this function. ARKode only assumes that after a call to
-     * jacobian_preconditioner_setup() it is possible to call
-     * jacobian_preconditioner_solve().
+     * @note No assumption is made by this interface on what the user
+     *   should do in this function. ARKode only assumes that after a call to
+     *   jacobian_preconditioner_setup() it is possible to call
+     *   jacobian_preconditioner_solve().
      *
      * @param[in] t  the current time
      * @param[in] y  is the current $y$ vector for the current ARKode internal
@@ -1184,10 +1194,10 @@ namespace SUNDIALS
      * If the mass_preconditioner_setup() function is not provided, then
      * mass_preconditioner_solve() should do all the work by itself.
      *
-     * Notice that no assumption is made by this interface on what the user
-     * should do in this function. ARKode only assumes that after a call to
-     * mass_preconditioner_setup() it is possible to call
-     * mass_preconditioner_solve().
+     * @note No assumption is made by this interface on what the user
+     *   should do in this function. ARKode only assumes that after a call to
+     *   mass_preconditioner_setup() it is possible to call
+     *   mass_preconditioner_solve().
      *
      * @param[in] t  the current time
      *
@@ -1208,12 +1218,12 @@ namespace SUNDIALS
      * polynomial interpolation of the solution, computed using the current ARK
      * order and the (internally stored) previously computed solution steps.
      *
-     * Notice that it is well possible that internally ARKode computes a time
-     * step which is much larger than the `output_period` step, and therefore
-     * calls this function consecutively several times by simply performing all
-     * intermediate interpolations. There is no relationship between how many
-     * times this function is called and how many time steps have actually been
-     * computed.
+     * @note It is well possible that internally ARKode computes a time
+     *   step which is much larger than the `output_period` step, and therefore
+     *   calls this function consecutively several times by simply performing
+     *   all intermediate interpolations. There is no relationship between how
+     *   many times this function is called and how many time steps have
+     *   actually been computed.
      */
     std::function<void(const double       t,
                        const VectorType & sol,

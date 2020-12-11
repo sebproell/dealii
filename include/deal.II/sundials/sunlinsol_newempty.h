@@ -13,7 +13,7 @@
 //
 //-----------------------------------------------------------
 
-/**
+/*
  * This file contains a verbatim copy of code snippets distributed within the
  * SUNDIALS package, see the license below.
  */
