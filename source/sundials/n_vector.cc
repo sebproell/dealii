@@ -25,41 +25,60 @@
 
 DEAL_II_NAMESPACE_OPEN
 
-
-template <typename VectorType>
-SUNDIALS::internal::NVectorInterface<
-  VectorType>::NVectorInterface::~NVectorInterface()
+namespace SUNDIALS
 {
-  if (owns_memory)
+  namespace internal
+  {
+    template <typename VectorType>
+    class NVectorContent
     {
-      mem.free(vector);
-    }
-}
+    public:
+      /**
+       * Create a non-owning content with an existing vector.
+       * @param vector
+       */
+      NVectorContent(VectorType *vector);
+
+      /**
+       * Allocate a new vector wrapped in a new content object. The vector
+       * will be deallocated automatically when this object is destroyed.
+       */
+      NVectorContent();
+
+      VectorType *
+      get();
+
+    private:
+      using PointerType =
+        std::unique_ptr<VectorType, std::function<void(VectorType *)>>;
+      GrowingVectorMemory<VectorType> mem;
+      PointerType                     vector;
+    };
+  } // namespace internal
+} // namespace SUNDIALS
 
 
 
 template <typename VectorType>
-SUNDIALS::internal::NVectorInterface<VectorType>::NVectorInterface()
-  : vector(mem.alloc())
-  , owns_memory(true)
+SUNDIALS::internal::NVectorContent<VectorType>::NVectorContent()
+  : vector(typename VectorMemory<VectorType>::Pointer(mem))
 {}
 
 
 
 template <typename VectorType>
-SUNDIALS::internal::NVectorInterface<VectorType>::NVectorInterface(
+SUNDIALS::internal::NVectorContent<VectorType>::NVectorContent(
   VectorType *vector)
-  : vector(vector)
-  , owns_memory(false)
+  : vector(vector, [](VectorType *) { /* not owning memory -> don't free*/ })
 {}
 
 
 
 template <typename VectorType>
 VectorType *
-SUNDIALS::internal::NVectorInterface<VectorType>::get()
+SUNDIALS::internal::NVectorContent<VectorType>::get()
 {
-  return vector;
+  return vector.get();
 }
 
 
@@ -69,8 +88,7 @@ VectorType *
 SUNDIALS::internal::unwrap_nvector(N_Vector v)
 {
   Assert(v->content != nullptr, ExcInternalError());
-  auto *interface =
-    reinterpret_cast<NVectorInterface<VectorType> *>(v->content);
+  auto *interface = reinterpret_cast<NVectorContent<VectorType> *>(v->content);
   return interface->get();
 }
 
@@ -86,7 +104,7 @@ SUNDIALS::internal::nvector_view(VectorType &vec)
     return (nullptr);
 
   // Create vector content using a pointer to the interface
-  v->content = new NVectorInterface<VectorType>(&vec);
+  v->content = new NVectorContent<VectorType>(&vec);
   if (v->content == nullptr)
     {
       N_VDestroy(v);
@@ -133,7 +151,7 @@ SUNDIALS::internal::N_VClone_dealii(N_Vector w)
   if (v == nullptr)
     return (nullptr);
 
-  auto cloned = new NVectorInterface<VectorType>();
+  auto cloned = new NVectorContent<VectorType>();
   auto n      = unwrap_nvector<VectorType>(w)->size();
 
   cloned->get()->reinit(n);
@@ -160,7 +178,7 @@ SUNDIALS::internal::N_VDestroy_dealii(N_Vector v)
   if (v->content != nullptr)
     {
       auto *interface =
-        reinterpret_cast<NVectorInterface<VectorType> *>(v->content);
+        reinterpret_cast<NVectorContent<VectorType> *>(v->content);
       // the NVectorInterface knows if it owns the memory and will free
       // correctly
       delete interface;

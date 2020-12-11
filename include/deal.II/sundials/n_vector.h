@@ -23,41 +23,10 @@
 
 DEAL_II_NAMESPACE_OPEN
 
-template <typename VectorType>
-class GrowingVectorMemory;
-
 namespace SUNDIALS
 {
   namespace internal
   {
-    template <typename VectorType>
-    class NVectorInterface
-    {
-    public:
-      /**
-       * Create a non-owning interface to an existing vector.
-       * @param vector
-       */
-      NVectorInterface(VectorType *vector);
-
-      /**
-       * Allocate a new vector wrapped in a new interface object. The vector
-       * will be deallocated automatically when this object is destroyed.
-       */
-      NVectorInterface();
-
-      ~NVectorInterface();
-
-      VectorType *
-      get();
-
-    private:
-      GrowingVectorMemory<VectorType> mem;
-      VectorType *                    vector;
-      bool                            owns_memory;
-    };
-
-
     template <typename VectorType>
     VectorType *
     unwrap_nvector(N_Vector v);
