@@ -156,6 +156,19 @@ test_destroy()
 
 template <typename VectorType>
 void
+test_length()
+{
+  auto vector   = create_test_vector<VectorType>();
+  auto n_vector = nvector_view<VectorType>(vector);
+  Assert(N_VGetLength(n_vector) == vector.size(), NVectorTestError());
+
+  deallog << "test_length OK" << std::endl;
+}
+
+
+
+template <typename VectorType>
+void
 test_linear_sum()
 {
   auto va       = create_test_vector<VectorType>();
@@ -225,6 +238,7 @@ run_all_tests(const std::string &prefix)
   // test vector operations
   test_clone<VectorType>();
   test_destroy<VectorType>();
+  test_length<VectorType>();
   test_linear_sum<VectorType>();
   test_set_constant<VectorType>();
 }

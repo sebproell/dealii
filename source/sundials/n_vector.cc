@@ -82,6 +82,9 @@ namespace SUNDIALS
       void
       destroy(N_Vector v);
 
+      template <typename VectorType>
+      sunindextype
+      get_global_length(N_Vector v);
 
       template <typename VectorType>
       void
@@ -229,6 +232,15 @@ SUNDIALS::internal::NVectorOperations::destroy(N_Vector v)
 
 
 template <typename VectorType>
+sunindextype
+SUNDIALS::internal::NVectorOperations::get_global_length(N_Vector v)
+{
+  return unwrap_nvector<VectorType>(v)->size();
+}
+
+
+
+template <typename VectorType>
 void
 SUNDIALS::internal::NVectorOperations::linear_sum(realtype a,
                                                   N_Vector x,
@@ -280,7 +292,7 @@ SUNDIALS::internal::create_empty_nvector()
   v->ops->nvdestroy     = NVectorOperations::destroy<VectorType>;
   //  v->ops->nvspace           = undef;
   //  v->ops->nvgetcommunicator = undef;
-  //  v->ops->nvgetlength       = undef;
+  v->ops->nvgetlength = NVectorOperations::get_global_length<VectorType>;
 
   /* standard vector operations */
   v->ops->nvlinearsum = NVectorOperations::linear_sum<VectorType>;
