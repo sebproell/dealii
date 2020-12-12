@@ -27,13 +27,38 @@ namespace SUNDIALS
 {
   namespace internal
   {
+    /**
+     * Retrieve the underlying vector attached to N_Vector @p v.
+     *
+     * @note Users must ensure that they ask for the correct VectorType when
+     *   calling this function and there are no type-safety checks in place.
+     *
+     * @tparam VectorType type of the vector that is stored in @p v
+     * @param v vector to unwrap
+     * @return the vector that is stored inside @p v
+     */
     template <typename VectorType>
     VectorType *
     unwrap_nvector(N_Vector v);
 
+    /**
+     * Get a view of the vector @p v as SUNDIALS N_Vector.
+     *
+     * This function does not allocate any new memory or perform any
+     * modifications on @p v. Instead it attaches the given vector @p v and its
+     * vector operations to the N_Vector interface of SUNDIALS. The returned
+     * vector can then be passed to SUNDIALS functions.
+     *
+     * The original vector @p v must be kept alive as long as the returned view
+     * is in use. If the view is destroyed with N_VDestroy() (part of SUNDIALS)
+     * the original vector @p v is not affected.
+     *
+     * @param v the vector to view as SUNDIALS N_Vector
+     * @return the N_Vector view of the passed vector
+     */
     template <typename VectorType>
     N_Vector
-    nvector_view(VectorType &vec);
+    nvector_view(VectorType &v);
 
   } // namespace internal
 } // namespace SUNDIALS

@@ -19,6 +19,7 @@
 #ifdef DEAL_II_WITH_SUNDIALS
 #  include <deal.II/base/exceptions.h>
 
+#  include <deal.II/lac/block_vector.h>
 #  include <deal.II/lac/vector_memory.h>
 
 #  include <deal.II/sundials/n_vector.h>
@@ -55,37 +56,41 @@ namespace SUNDIALS
       PointerType                     vector;
     };
 
-    N_Vector_ID
-    N_VGetVectorID_dealii(N_Vector v);
-
-    N_Vector
-    N_VCloneEmpty_dealii(N_Vector w);
-
-    template <typename VectorType>
-    N_Vector
-    N_VClone_dealii(N_Vector w);
-
-
-    template <typename VectorType>
-    void
-    N_VDestroy_dealii(N_Vector v);
-
-
-    template <typename VectorType>
-    void
-    N_VLinearSum_dealii(realtype a,
-                        N_Vector x,
-                        realtype b,
-                        N_Vector y,
-                        N_Vector z);
-
     /**
      * Helper to create an empty vector with all operation set but no content.
      * @return a new N_Vector
      */
     template <typename VectorType>
     N_Vector
-    N_VNewEmpty_dealii();
+    create_empty_nvector();
+
+    namespace NVectorOperations
+    {
+      N_Vector_ID
+      get_vector_id(N_Vector v);
+
+      N_Vector
+      clone_empty(N_Vector w);
+
+      template <typename VectorType>
+      N_Vector
+      clone(N_Vector w);
+
+
+      template <typename VectorType>
+      void
+      destroy(N_Vector v);
+
+
+      template <typename VectorType>
+      void
+      linear_sum(realtype a, N_Vector x, realtype b, N_Vector y, N_Vector z);
+
+      template <typename VectorType>
+      void
+      set_constant(realtype c, N_Vector v);
+
+    } // namespace NVectorOperations
 
   } // namespace internal
 } // namespace SUNDIALS
@@ -133,24 +138,18 @@ N_Vector
 SUNDIALS::internal::nvector_view(VectorType &vec)
 {
   // Create an N_Vector with operators attached and empty content
-  N_Vector v = N_VNewEmpty_dealii<VectorType>();
-  if (v == nullptr)
-    return (nullptr);
+  N_Vector v = create_empty_nvector<VectorType>();
+  Assert(v != nullptr, ExcInternalError());
 
-  // Create vector content using a pointer to the interface
+  // Create a non-owning vector content using a pointer and attach to N_Vector
   v->content = new NVectorContent<VectorType>(&vec);
-  if (v->content == nullptr)
-    {
-      N_VDestroy(v);
-      return nullptr;
-    }
-
+  Assert(v->content != nullptr, ExcInternalError());
   return (v);
 }
 
 
 
-N_Vector_ID SUNDIALS::internal::N_VGetVectorID_dealii(N_Vector)
+N_Vector_ID SUNDIALS::internal::NVectorOperations::get_vector_id(N_Vector)
 {
   return SUNDIALS_NVEC_CUSTOM;
 }
@@ -158,7 +157,7 @@ N_Vector_ID SUNDIALS::internal::N_VGetVectorID_dealii(N_Vector)
 
 
 N_Vector
-SUNDIALS::internal::N_VCloneEmpty_dealii(N_Vector w)
+SUNDIALS::internal::NVectorOperations::clone_empty(N_Vector w)
 {
   Assert(w != nullptr, ExcInternalError());
   N_Vector v = N_VNewEmpty();
@@ -179,16 +178,14 @@ SUNDIALS::internal::N_VCloneEmpty_dealii(N_Vector w)
 
 template <typename VectorType>
 N_Vector
-SUNDIALS::internal::N_VClone_dealii(N_Vector w)
+SUNDIALS::internal::NVectorOperations::clone(N_Vector w)
 {
-  N_Vector v = N_VCloneEmpty_dealii(w);
-  if (v == nullptr)
-    return (nullptr);
+  N_Vector v = clone_empty(w);
 
-  auto cloned = new NVectorContent<VectorType>();
-  auto n      = unwrap_nvector<VectorType>(w)->size();
-
-  cloned->get()->reinit(n);
+  // the corresponding delete is called in N_VDestroy_dealii
+  auto  cloned   = new NVectorContent<VectorType>();
+  auto *w_dealii = unwrap_nvector<VectorType>(w);
+  cloned->get()->reinit(*w_dealii);
 
   v->content = cloned;
   if (v->content == nullptr)
@@ -204,7 +201,7 @@ SUNDIALS::internal::N_VClone_dealii(N_Vector w)
 
 template <typename VectorType>
 void
-SUNDIALS::internal::N_VDestroy_dealii(N_Vector v)
+SUNDIALS::internal::NVectorOperations::destroy(N_Vector v)
 {
   if (v == nullptr)
     return;
@@ -226,20 +223,17 @@ SUNDIALS::internal::N_VDestroy_dealii(N_Vector v)
       v->ops = nullptr;
     }
   free(v);
-  v = nullptr;
-
-  return;
 }
 
 
 
 template <typename VectorType>
 void
-SUNDIALS::internal::N_VLinearSum_dealii(realtype a,
-                                        N_Vector x,
-                                        realtype b,
-                                        N_Vector y,
-                                        N_Vector z)
+SUNDIALS::internal::NVectorOperations::linear_sum(realtype a,
+                                                  N_Vector x,
+                                                  realtype b,
+                                                  N_Vector y,
+                                                  N_Vector z)
 {
   auto *x_dealii = unwrap_nvector<VectorType>(x);
   auto *y_dealii = unwrap_nvector<VectorType>(y);
@@ -258,13 +252,19 @@ SUNDIALS::internal::N_VLinearSum_dealii(realtype a,
 
 
 
-/**
- * Helper to create an empty vector with all operation set but no content.
- * @return a new N_Vector
- */
+template <typename VectorType>
+void
+SUNDIALS::internal::NVectorOperations::set_constant(realtype c, N_Vector v)
+{
+  auto *v_dealii = unwrap_nvector<VectorType>(v);
+  *v_dealii      = c;
+}
+
+
+
 template <typename VectorType>
 N_Vector
-SUNDIALS::internal::N_VNewEmpty_dealii()
+SUNDIALS::internal::create_empty_nvector()
 {
   N_Vector v = N_VNewEmpty();
   if (v == nullptr)
@@ -273,13 +273,47 @@ SUNDIALS::internal::N_VNewEmpty_dealii()
   /* Attach operations */
 
   /* constructors, destructors, and utility operations */
-  v->ops->nvgetvectorid = N_VGetVectorID_dealii;
-  v->ops->nvclone       = N_VClone_dealii<VectorType>;
-  v->ops->nvcloneempty  = N_VCloneEmpty_dealii;
-  v->ops->nvdestroy     = N_VDestroy_dealii<VectorType>;
+  v->ops->nvgetvectorid = NVectorOperations::get_vector_id;
+  v->ops->nvclone       = NVectorOperations::clone<VectorType>;
+  v->ops->nvcloneempty  = NVectorOperations::clone_empty;
+  v->ops->nvdestroy     = NVectorOperations::destroy<VectorType>;
+  //  v->ops->nvspace           = undef;
+  //  v->ops->nvgetcommunicator = undef;
+  //  v->ops->nvgetlength       = undef;
 
   /* standard vector operations */
-  v->ops->nvlinearsum = N_VLinearSum_dealii<VectorType>;
+  v->ops->nvlinearsum = NVectorOperations::linear_sum<VectorType>;
+  v->ops->nvconst     = NVectorOperations::set_constant<VectorType>;
+  //  v->ops->nvprod         = undef;
+  //  v->ops->nvdiv          = undef;
+  //  v->ops->nvscale        = undef;
+  //  v->ops->nvabs          = undef;
+  //  v->ops->nvinv          = undef;
+  //  v->ops->nvaddconst     = undef;
+  //  v->ops->nvdotprod      = undef;
+  //  v->ops->nvmaxnorm      = undef;
+  //  v->ops->nvwrmsnorm     = undef;
+  //  v->ops->nvwrmsnormmask = undef;
+  //  v->ops->nvmin          = undef;
+  //  v->ops->nvwl2norm      = undef;
+  //  v->ops->nvl1norm       = undef;
+  //  v->ops->nvcompare      = undef;
+  //  v->ops->nvinvtest      = undef;
+  //  v->ops->nvconstrmask   = undef;
+  //  v->ops->nvminquotient  = undef;
+
+  /* fused and vector array operations are disabled (NULL) by default */
+
+  /* local reduction operations */
+  //  v->ops->nvdotprodlocal     = undef;
+  //  v->ops->nvmaxnormlocal     = undef;
+  //  v->ops->nvminlocal         = undef;
+  //  v->ops->nvl1normlocal      = undef;
+  //  v->ops->nvinvtestlocal     = undef;
+  //  v->ops->nvconstrmasklocal  = undef;
+  //  v->ops->nvminquotientlocal = undef;
+  //  v->ops->nvwsqrsumlocal     = undef;
+  //  v->ops->nvwsqrsummasklocal = undef;
   return (v);
 }
 
@@ -289,6 +323,12 @@ SUNDIALS::internal::nvector_view<Vector<double>>(Vector<double> &);
 
 template Vector<double> *
   SUNDIALS::internal::unwrap_nvector<Vector<double>>(N_Vector);
+
+template N_Vector
+SUNDIALS::internal::nvector_view<BlockVector<double>>(BlockVector<double> &);
+
+template BlockVector<double> *
+  SUNDIALS::internal::unwrap_nvector<BlockVector<double>>(N_Vector);
 
 DEAL_II_NAMESPACE_CLOSE
 
