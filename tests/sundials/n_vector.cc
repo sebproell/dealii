@@ -16,6 +16,7 @@
 #include <deal.II/base/logstream.h>
 
 #include <deal.II/lac/block_vector.h>
+#include <deal.II/lac/la_parallel_vector.h>
 
 #include <deal.II/sundials/n_vector.h>
 
@@ -25,6 +26,7 @@
 
 using namespace SUNDIALS::internal;
 
+// anonymous namespace groups helper functions for testing
 namespace
 {
   DeclExceptionMsg(NVectorTestError,
@@ -54,6 +56,20 @@ namespace
     const int num_blocks = 2;
     const int size_block = 3;
     return BlockVector<double>(num_blocks, size_block);
+  }
+
+  template <>
+  LinearAlgebra::distributed::Vector<double>
+  create_test_vector()
+  {
+    return LinearAlgebra::distributed::Vector<double>(3 /*size*/);
+  }
+
+  bool
+  operator==(const LinearAlgebra::distributed::Vector<double> &a,
+             const LinearAlgebra::distributed::Vector<double> &b)
+  {
+    return std::equal(a.begin(), a.end(), b.begin());
   }
 } // namespace
 
@@ -222,4 +238,6 @@ main(int argc, char **argv)
 
   run_all_tests<Vector<double>>("Vector<double>");
   run_all_tests<BlockVector<double>>("BlockVector<double>");
+  run_all_tests<LinearAlgebra::distributed::Vector<double>>(
+    "LinearAlgebra::distributed::Vector<double>");
 }
