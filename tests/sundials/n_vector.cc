@@ -16,6 +16,7 @@
 #include <deal.II/base/logstream.h>
 
 #include <deal.II/lac/block_vector.h>
+#include <deal.II/lac/la_parallel_block_vector.h>
 #include <deal.II/lac/la_parallel_vector.h>
 
 #include <deal.II/sundials/n_vector.h>
@@ -65,9 +66,23 @@ namespace
     return LinearAlgebra::distributed::Vector<double>(3 /*size*/);
   }
 
+  template <>
+  LinearAlgebra::distributed::BlockVector<double>
+  create_test_vector()
+  {
+    return LinearAlgebra::distributed::BlockVector<double>(3 /*size*/);
+  }
+
   bool
   operator==(const LinearAlgebra::distributed::Vector<double> &a,
              const LinearAlgebra::distributed::Vector<double> &b)
+  {
+    return std::equal(a.begin(), a.end(), b.begin());
+  }
+
+  bool
+  operator==(const LinearAlgebra::distributed::BlockVector<double> &a,
+             const LinearAlgebra::distributed::BlockVector<double> &b)
   {
     return std::equal(a.begin(), a.end(), b.begin());
   }
@@ -254,4 +269,6 @@ main(int argc, char **argv)
   run_all_tests<BlockVector<double>>("BlockVector<double>");
   run_all_tests<LinearAlgebra::distributed::Vector<double>>(
     "LinearAlgebra::distributed::Vector<double>");
+  run_all_tests<LinearAlgebra::distributed::BlockVector<double>>(
+    "LinearAlgebra::distributed::BlockVector<double>");
 }

@@ -20,6 +20,7 @@
 #  include <deal.II/base/exceptions.h>
 
 #  include <deal.II/lac/block_vector.h>
+#  include <deal.II/lac/la_parallel_block_vector.h>
 #  include <deal.II/lac/la_parallel_vector.h>
 #  include <deal.II/lac/vector_memory.h>
 
@@ -343,13 +344,22 @@ SUNDIALS::internal::nvector_view<BlockVector<double>>(BlockVector<double> &);
 template BlockVector<double> *
   SUNDIALS::internal::unwrap_nvector<BlockVector<double>>(N_Vector);
 
+template N_Vector
+SUNDIALS::internal::nvector_view<LinearAlgebra::distributed::Vector<double>>(
+  LinearAlgebra::distributed::Vector<double> &);
+
 template LinearAlgebra::distributed::Vector<double> *
   SUNDIALS::internal::unwrap_nvector<
     LinearAlgebra::distributed::Vector<double>>(N_Vector);
 
 template N_Vector
-SUNDIALS::internal::nvector_view<LinearAlgebra::distributed::Vector<double>>(
-  LinearAlgebra::distributed::Vector<double> &);
+SUNDIALS::internal::nvector_view<
+  LinearAlgebra::distributed::BlockVector<double>>(
+  LinearAlgebra::distributed::BlockVector<double> &);
+
+template LinearAlgebra::distributed::BlockVector<double> *
+  SUNDIALS::internal::unwrap_nvector<
+    LinearAlgebra::distributed::BlockVector<double>>(N_Vector);
 
 DEAL_II_NAMESPACE_CLOSE
 
