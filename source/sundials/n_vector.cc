@@ -16,16 +16,17 @@
 
 #include <deal.II/base/config.h>
 
+#include <deal.II/sundials/n_vector.h>
+
 #ifdef DEAL_II_WITH_SUNDIALS
 #  include <deal.II/base/exceptions.h>
 
 #  include <deal.II/lac/block_vector.h>
 #  include <deal.II/lac/la_parallel_block_vector.h>
 #  include <deal.II/lac/la_parallel_vector.h>
+#  include <deal.II/lac/trilinos_parallel_block_vector.h>
+#  include <deal.II/lac/trilinos_vector.h>
 #  include <deal.II/lac/vector_memory.h>
-
-#  include <deal.II/sundials/n_vector.h>
-
 DEAL_II_NAMESPACE_OPEN
 
 namespace SUNDIALS
@@ -360,6 +361,27 @@ SUNDIALS::internal::nvector_view<
 template LinearAlgebra::distributed::BlockVector<double> *
   SUNDIALS::internal::unwrap_nvector<
     LinearAlgebra::distributed::BlockVector<double>>(N_Vector);
+
+#  ifdef DEAL_II_WITH_MPI
+#    ifdef DEAL_II_WITH_TRILINOS
+
+template N_Vector
+SUNDIALS::internal::nvector_view<TrilinosWrappers::MPI::Vector>(
+  TrilinosWrappers::MPI::Vector &);
+
+template TrilinosWrappers::MPI::Vector *
+  SUNDIALS::internal::unwrap_nvector<TrilinosWrappers::MPI::Vector>(N_Vector);
+
+template N_Vector
+SUNDIALS::internal::nvector_view<TrilinosWrappers::MPI::BlockVector>(
+  TrilinosWrappers::MPI::BlockVector &);
+
+template TrilinosWrappers::MPI::BlockVector *
+  SUNDIALS::internal::unwrap_nvector<TrilinosWrappers::MPI::BlockVector>(
+    N_Vector);
+
+#    endif
+#  endif
 
 DEAL_II_NAMESPACE_CLOSE
 

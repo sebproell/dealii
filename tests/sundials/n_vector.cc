@@ -1,6 +1,6 @@
 //-----------------------------------------------------------
 //
-//    Copyright (C) 2017 - 2020 by the deal.II authors
+//    Copyright (C) 2020 by the deal.II authors
 //
 //    This file is part of the deal.II library.
 //
@@ -18,6 +18,8 @@
 #include <deal.II/lac/block_vector.h>
 #include <deal.II/lac/la_parallel_block_vector.h>
 #include <deal.II/lac/la_parallel_vector.h>
+#include <deal.II/lac/trilinos_parallel_block_vector.h>
+#include <deal.II/lac/trilinos_vector.h>
 
 #include <deal.II/sundials/n_vector.h>
 
@@ -71,6 +73,15 @@ namespace
   create_test_vector()
   {
     return LinearAlgebra::distributed::BlockVector<double>(3 /*size*/);
+  }
+
+  template <>
+  TrilinosWrappers::MPI::Vector
+  create_test_vector()
+  {
+    IndexSet partitioning(3);
+    partitioning.add_range(0, 3);
+    return TrilinosWrappers::MPI::Vector(partitioning);
   }
 
   bool
@@ -261,7 +272,8 @@ run_all_tests(const std::string &prefix)
 int
 main(int argc, char **argv)
 {
-  initlog();
+  Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
+  MPILogInitAll                    log_all;
 
   using VectorType = Vector<double>;
 
@@ -271,4 +283,5 @@ main(int argc, char **argv)
     "LinearAlgebra::distributed::Vector<double>");
   run_all_tests<LinearAlgebra::distributed::BlockVector<double>>(
     "LinearAlgebra::distributed::BlockVector<double>");
+  run_all_tests<TrilinosWrappers::MPI::Vector>("TrilinosWrappers::MPI::Vector");
 }
