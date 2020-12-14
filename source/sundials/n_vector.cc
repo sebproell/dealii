@@ -79,7 +79,6 @@ namespace SUNDIALS
       N_Vector
       clone(N_Vector w);
 
-
       template <typename VectorType>
       void
       destroy(N_Vector v);
@@ -96,6 +95,26 @@ namespace SUNDIALS
       void
       set_constant(realtype c, N_Vector v);
 
+      template <
+        typename VectorType,
+        typename std::enable_if_t<is_serial_vector<VectorType>::value, int> = 0>
+      void *get_communicator(N_Vector);
+
+      template <
+        typename VectorType,
+        typename std::enable_if_t<!is_serial_vector<VectorType>::value &&
+                                    !IsBlockVector<VectorType>::value,
+                                  int> = 0>
+      void *
+      get_communicator(N_Vector v);
+
+      template <
+        typename VectorType,
+        typename std::enable_if_t<!is_serial_vector<VectorType>::value &&
+                                    IsBlockVector<VectorType>::value,
+                                  int> = 0>
+      void *
+      get_communicator(N_Vector v);
     } // namespace NVectorOperations
 
   } // namespace internal
@@ -233,6 +252,39 @@ SUNDIALS::internal::NVectorOperations::destroy(N_Vector v)
 
 
 
+template <typename VectorType,
+          std::enable_if_t<is_serial_vector<VectorType>::value, int>>
+void *SUNDIALS::internal::NVectorOperations::get_communicator(N_Vector)
+{
+  return nullptr;
+}
+
+
+
+template <typename VectorType,
+          std::enable_if_t<!is_serial_vector<VectorType>::value &&
+                             IsBlockVector<VectorType>::value,
+                           int>>
+void *
+SUNDIALS::internal::NVectorOperations::get_communicator(N_Vector v)
+{
+  return unwrap_nvector<VectorType>(v)->block(0).get_mpi_communicator();
+}
+
+
+
+template <typename VectorType,
+          std::enable_if_t<!is_serial_vector<VectorType>::value &&
+                             !IsBlockVector<VectorType>::value,
+                           int>>
+void *
+SUNDIALS::internal::NVectorOperations::get_communicator(N_Vector v)
+{
+  return unwrap_nvector<VectorType>(v)->get_mpi_communicator();
+}
+
+
+
 template <typename VectorType>
 sunindextype
 SUNDIALS::internal::NVectorOperations::get_global_length(N_Vector v)
@@ -293,8 +345,8 @@ SUNDIALS::internal::create_empty_nvector()
   v->ops->nvcloneempty  = NVectorOperations::clone_empty;
   v->ops->nvdestroy     = NVectorOperations::destroy<VectorType>;
   //  v->ops->nvspace           = undef;
-  //  v->ops->nvgetcommunicator = undef;
-  v->ops->nvgetlength = NVectorOperations::get_global_length<VectorType>;
+  v->ops->nvgetcommunicator = NVectorOperations::get_communicator<VectorType>;
+  v->ops->nvgetlength       = NVectorOperations::get_global_length<VectorType>;
 
   /* standard vector operations */
   v->ops->nvlinearsum = NVectorOperations::linear_sum<VectorType>;

@@ -3,6 +3,7 @@ DEAL:0:Vector<double>::test_nvector_view_unwrap OK
 DEAL:0:Vector<double>::test_get_vector_id OK
 DEAL:0:Vector<double>::test_clone OK
 DEAL:0:Vector<double>::test_destroy OK
+DEAL:0:Vector<double>::test_get_communicator OK
 DEAL:0:Vector<double>::test_length OK
 DEAL:0:Vector<double>::test_linear_sum OK
 DEAL:0:Vector<double>::test_set_constant OK
@@ -10,6 +11,7 @@ DEAL:0:BlockVector<double>::test_nvector_view_unwrap OK
 DEAL:0:BlockVector<double>::test_get_vector_id OK
 DEAL:0:BlockVector<double>::test_clone OK
 DEAL:0:BlockVector<double>::test_destroy OK
+DEAL:0:BlockVector<double>::test_get_communicator OK
 DEAL:0:BlockVector<double>::test_length OK
 DEAL:0:BlockVector<double>::test_linear_sum OK
 DEAL:0:BlockVector<double>::test_set_constant OK
@@ -17,6 +19,7 @@ DEAL:0:LinearAlgebra::distributed::Vector<double>::test_nvector_view_unwrap OK
 DEAL:0:LinearAlgebra::distributed::Vector<double>::test_get_vector_id OK
 DEAL:0:LinearAlgebra::distributed::Vector<double>::test_clone OK
 DEAL:0:LinearAlgebra::distributed::Vector<double>::test_destroy OK
+DEAL:0:LinearAlgebra::distributed::Vector<double>::test_get_communicator OK
 DEAL:0:LinearAlgebra::distributed::Vector<double>::test_length OK
 DEAL:0:LinearAlgebra::distributed::Vector<double>::test_linear_sum OK
 DEAL:0:LinearAlgebra::distributed::Vector<double>::test_set_constant OK
@@ -24,6 +27,7 @@ DEAL:0:LinearAlgebra::distributed::BlockVector<double>::test_nvector_view_unwrap
 DEAL:0:LinearAlgebra::distributed::BlockVector<double>::test_get_vector_id OK
 DEAL:0:LinearAlgebra::distributed::BlockVector<double>::test_clone OK
 DEAL:0:LinearAlgebra::distributed::BlockVector<double>::test_destroy OK
+DEAL:0:LinearAlgebra::distributed::BlockVector<double>::test_get_communicator OK
 DEAL:0:LinearAlgebra::distributed::BlockVector<double>::test_length OK
 DEAL:0:LinearAlgebra::distributed::BlockVector<double>::test_linear_sum OK
 DEAL:0:LinearAlgebra::distributed::BlockVector<double>::test_set_constant OK
@@ -31,6 +35,7 @@ DEAL:0:TrilinosWrappers::MPI::Vector::test_nvector_view_unwrap OK
 DEAL:0:TrilinosWrappers::MPI::Vector::test_get_vector_id OK
 DEAL:0:TrilinosWrappers::MPI::Vector::test_clone OK
 DEAL:0:TrilinosWrappers::MPI::Vector::test_destroy OK
+DEAL:0:TrilinosWrappers::MPI::Vector::test_get_communicator OK
 DEAL:0:TrilinosWrappers::MPI::Vector::test_length OK
 DEAL:0:TrilinosWrappers::MPI::Vector::test_linear_sum OK
 DEAL:0:TrilinosWrappers::MPI::Vector::test_set_constant OK

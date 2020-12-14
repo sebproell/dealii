@@ -65,14 +65,23 @@ namespace
   LinearAlgebra::distributed::Vector<double>
   create_test_vector()
   {
-    return LinearAlgebra::distributed::Vector<double>(3 /*size*/);
+    IndexSet partitioning(3);
+    partitioning.add_range(0, 3);
+    return LinearAlgebra::distributed::Vector<double>(partitioning,
+                                                      MPI_COMM_WORLD);
   }
 
   template <>
   LinearAlgebra::distributed::BlockVector<double>
   create_test_vector()
   {
-    return LinearAlgebra::distributed::BlockVector<double>(3 /*size*/);
+    IndexSet partitioning1(6);
+    partitioning1.add_range(0, 3);
+    IndexSet partitioning2(6);
+    partitioning2.add_range(3, 6);
+    return LinearAlgebra::distributed::BlockVector<double>({partitioning1,
+                                                            partitioning2},
+                                                           MPI_COMM_WORLD);
   }
 
   template <>
@@ -88,14 +97,22 @@ namespace
   operator==(const LinearAlgebra::distributed::Vector<double> &a,
              const LinearAlgebra::distributed::Vector<double> &b)
   {
-    return std::equal(a.begin(), a.end(), b.begin());
+    auto elements_a = a.locally_owned_elements();
+    auto elements_b = b.locally_owned_elements();
+    if (elements_a.size() != elements_b.size())
+      return false;
+    return std::equal(elements_a.begin(), elements_a.end(), elements_b.begin());
   }
 
   bool
   operator==(const LinearAlgebra::distributed::BlockVector<double> &a,
              const LinearAlgebra::distributed::BlockVector<double> &b)
   {
-    return std::equal(a.begin(), a.end(), b.begin());
+    auto elements_a = a.locally_owned_elements();
+    auto elements_b = b.locally_owned_elements();
+    if (elements_a.size() != elements_b.size())
+      return false;
+    return std::equal(elements_a.begin(), elements_a.end(), elements_b.begin());
   }
 } // namespace
 
@@ -176,6 +193,34 @@ test_destroy()
   N_VDestroy(n_vector);
 
   deallog << "test_destroy OK" << std::endl;
+}
+
+
+
+template <typename VectorType,
+          std::enable_if_t<is_serial_vector<VectorType>::value, int> = 0>
+void
+test_get_communicator()
+{
+  auto vector   = create_test_vector<VectorType>();
+  auto n_vector = nvector_view<VectorType>(vector);
+  Assert(N_VGetCommunicator(n_vector) == nullptr, NVectorTestError());
+
+  deallog << "test_get_communicator OK" << std::endl;
+}
+
+
+
+template <typename VectorType,
+          std::enable_if_t<!is_serial_vector<VectorType>::value, int> = 0>
+void
+test_get_communicator()
+{
+  auto vector   = create_test_vector<VectorType>();
+  auto n_vector = nvector_view<VectorType>(vector);
+  Assert(N_VGetCommunicator(n_vector) == MPI_COMM_WORLD, NVectorTestError());
+
+  deallog << "test_get_communicator OK" << std::endl;
 }
 
 
@@ -264,6 +309,7 @@ run_all_tests(const std::string &prefix)
   // test vector operations
   test_clone<VectorType>();
   test_destroy<VectorType>();
+  test_get_communicator<VectorType>();
   test_length<VectorType>();
   test_linear_sum<VectorType>();
   test_set_constant<VectorType>();
